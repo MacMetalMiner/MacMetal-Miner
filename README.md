@@ -96,7 +96,7 @@ Let's be real about the math:
 | Per year | 1 in 650,000 |
 | Per lifetime | 1 in 8,125 |
 
-**But remember:** Someone with just 1 MH/s won a block worth $272,000 in December 2024. Every hash is a lottery ticket! 🎰
+**But remember:** Someone with just 1 MH/s won a block worth $272,000 in November 2025. Every hash is a lottery ticket! 🎰
 
 ## Quick Start
 
