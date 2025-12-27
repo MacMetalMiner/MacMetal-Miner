@@ -1693,12 +1693,121 @@
         </div>
     </section>
     
-    <!-- Quote Section -->
-    <section class="quote-section">
+    <!-- Solo Winners Section -->
+    <section class="solo-winners-section">
         <div class="container">
-            <p class="quote">"Several solo miners with small setups won <span>$250,000 - $373,000</span> in 2025. It's rare, but it happens — and you can't win if you don't play."</p>
+            <div class="section-header">
+                <h2>Real Solo Winners in 2025</h2>
+                <p>Small setups. Huge luck. Life-changing wins against giant pools.</p>
+            </div>
+            <div class="winners-grid">
+                <div class="winner-card">
+                    <div class="winner-date">Dec 2025</div>
+                    <div class="winner-amount">$285,000</div>
+                    <div class="winner-detail">Block #927,474 • CKPool</div>
+                </div>
+                <div class="winner-card">
+                    <div class="winner-date">Oct 2025</div>
+                    <div class="winner-amount">$347,000</div>
+                    <div class="winner-detail">Solo miner • Low hashrate</div>
+                </div>
+                <div class="winner-card featured">
+                    <div class="winner-date">Aug 2025</div>
+                    <div class="winner-amount">$371,000</div>
+                    <div class="winner-detail">Biggest solo win of 2025</div>
+                </div>
+                <div class="winner-card">
+                    <div class="winner-date">Nov 2025</div>
+                    <div class="winner-amount">$266,000</div>
+                    <div class="winner-detail">Solo miner • Small setup</div>
+                </div>
+            </div>
+            <p class="winners-footer">These miners collected the <strong>full block reward</strong> (subsidy + fees) with relatively low hash power. It's rare, but it happens — and you can't win if you don't play.</p>
         </div>
     </section>
+    
+    <style>
+    .solo-winners-section {
+        padding: 80px 0;
+        background: linear-gradient(135deg, rgba(247, 147, 26, 0.05), rgba(0, 0, 0, 0));
+    }
+    
+    .winners-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin: 40px 0;
+    }
+    
+    .winner-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 24px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .winner-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(247, 147, 26, 0.3);
+    }
+    
+    .winner-card.featured {
+        background: linear-gradient(135deg, rgba(247, 147, 26, 0.15), rgba(247, 147, 26, 0.05));
+        border-color: rgba(247, 147, 26, 0.4);
+    }
+    
+    .winner-date {
+        font-size: 14px;
+        color: var(--text-dim);
+        margin-bottom: 8px;
+    }
+    
+    .winner-amount {
+        font-size: 28px;
+        font-weight: 700;
+        color: #00d4aa;
+        margin-bottom: 8px;
+    }
+    
+    .winner-card.featured .winner-amount {
+        color: #f7931a;
+    }
+    
+    .winner-detail {
+        font-size: 13px;
+        color: var(--text-dim);
+    }
+    
+    .winners-footer {
+        text-align: center;
+        color: var(--text-dim);
+        max-width: 600px;
+        margin: 0 auto;
+        font-size: 16px;
+    }
+    
+    .winners-footer strong {
+        color: #f7931a;
+    }
+    
+    @media (max-width: 768px) {
+        .winners-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .winner-amount {
+            font-size: 24px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .winners-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    </style>
     
     <!-- Performance Section -->
     <section class="performance" id="performance">
@@ -2087,7 +2196,7 @@
                         </svg>
                         Will I actually win?
                     </h4>
-                    <p>This is lottery mining. Odds per attempt are very low, but you get 52,500+ chances per year. Several solo miners won $250K-$373K in 2025 with small setups. It's rare, but it happens.</p>
+                    <p>This is lottery mining. Odds per attempt are very low, but you get 52,500+ chances per year. Solo miners on CKPool won $285K (Dec), $347K (Oct), $371K (Aug), and $266K (Nov) in 2025 alone. It's rare, but it happens.</p>
                 </div>
                 <div class="faq-item">
                     <h4>
