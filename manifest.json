@@ -1,0 +1,30 @@
+{
+    "name": "MacMetal Miner Pro Max",
+    "short_name": "MacMetal Miner",
+    "description": "Native Bitcoin Solo Miner for Apple Silicon Macs - 52,500+ lottery chances per year",
+    "start_url": "/Mac-Pro-Bitcoin-Mining/",
+    "display": "standalone",
+    "background_color": "#0a0a0f",
+    "theme_color": "#f7931a",
+    "orientation": "any",
+    "categories": ["finance", "utilities"],
+    "icons": [
+        {
+            "src": "images/icons/android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "images/icons/android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "images/icons/apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
+        }
+    ]
+}
