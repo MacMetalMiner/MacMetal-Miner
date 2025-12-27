@@ -1390,6 +1390,11 @@
                         <div class="comparison-cell macmetal-cell highlight-cell">$13/month</div>
                     </div>
                     <div class="comparison-row">
+                        <div class="comparison-label">Chances/Year</div>
+                        <div class="comparison-cell powerball-cell bad-odds">156</div>
+                        <div class="comparison-cell macmetal-cell highlight-cell good-odds">52,500+</div>
+                    </div>
+                    <div class="comparison-row">
                         <div class="comparison-label">Play Frequency</div>
                         <div class="comparison-cell powerball-cell">Play once</div>
                         <div class="comparison-cell macmetal-cell highlight-cell">Play 24/7/365</div>
@@ -1412,10 +1417,16 @@
                 </div>
             </div>
             
-            <!-- Odds Multiplier -->
-            <div class="lottery-multiplier">
-                <div class="lottery-multiplier-value">450x</div>
-                <p style="color: var(--text-dim); margin-top: 10px;">Better odds than Powerball for similar money</p>
+            <!-- Multipliers -->
+            <div class="lottery-multipliers">
+                <div class="lottery-multiplier">
+                    <div class="lottery-multiplier-value">336x</div>
+                    <p style="color: var(--text-dim); margin-top: 10px;">More chances per year</p>
+                </div>
+                <div class="lottery-multiplier">
+                    <div class="lottery-multiplier-value">450x</div>
+                    <p style="color: var(--text-dim); margin-top: 10px;">Better odds per attempt</p>
+                </div>
             </div>
             
             <!-- Marketing Quotes -->
@@ -1442,6 +1453,17 @@
     .powerball-comparison {
         margin: 40px auto;
         max-width: 800px;
+    }
+    
+    .lottery-multipliers {
+        display: flex;
+        justify-content: center;
+        gap: 60px;
+        margin: 40px 0;
+    }
+    
+    .lottery-multipliers .lottery-multiplier {
+        text-align: center;
     }
     
     .comparison-table {
