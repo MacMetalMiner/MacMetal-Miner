@@ -283,6 +283,7 @@
         .miner-info {
             flex: 1;
             min-width: 0;
+            overflow: hidden;
         }
         
         .miner-top-row {
@@ -290,6 +291,7 @@
             align-items: center;
             gap: 6px;
             margin-bottom: 3px;
+            overflow: hidden;
         }
         
         .online-dot {
@@ -304,8 +306,12 @@
         .miner-address {
             font-family: 'JetBrains Mono', monospace;
             color: var(--neon-blue);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100px;
         }
         
         .miner-machine {
@@ -319,6 +325,7 @@
         .miner-stats {
             text-align: right;
             flex-shrink: 0;
+            min-width: 80px;
         }
         
         .miner-hashrate {
