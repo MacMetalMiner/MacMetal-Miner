@@ -38,10 +38,9 @@
             color: var(--text-primary);
             min-height: 100vh;
             overflow-x: hidden;
-            padding-bottom: env(safe-area-inset-bottom);
+            padding-bottom: 20px;
         }
         
-        /* Grid background */
         body::before {
             content: '';
             position: fixed;
@@ -58,9 +57,9 @@
         }
         
         .container {
-            max-width: 1400px;
+            max-width: 600px;
             margin: 0 auto;
-            padding: 15px;
+            padding: 12px;
         }
         
         /* Header */
@@ -68,27 +67,25 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 0 25px;
+            padding: 12px 0 20px;
             border-bottom: 1px solid var(--border-color);
-            margin-bottom: 20px;
-            gap: 15px;
-            flex-wrap: wrap;
+            margin-bottom: 16px;
         }
         
         .logo-section {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
         
         .logo-icon {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
         }
         
         .logo-text {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: 900;
             background: linear-gradient(135deg, var(--neon-orange), var(--neon-gold));
             -webkit-background-clip: text;
@@ -98,19 +95,19 @@
         .header-right {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         
         .live-badge {
-            display: inline-flex;
+            display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             background: rgba(0,255,136,0.1);
             border: 1px solid var(--neon-green);
             color: var(--neon-green);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.7rem;
             font-weight: 600;
         }
         
@@ -127,12 +124,11 @@
             background: rgba(247,147,26,0.1);
             border: 1px solid var(--neon-orange);
             color: var(--neon-orange);
-            padding: 8px 14px;
-            border-radius: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
             text-decoration: none;
             font-weight: 600;
-            font-size: 0.85rem;
-            transition: all 0.3s ease;
+            font-size: 0.75rem;
         }
         
         @keyframes pulse {
@@ -140,80 +136,70 @@
             50% { opacity: 0.5; transform: scale(1.3); }
         }
         
-        /* Stats Grid - Mobile First */
+        /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 25px;
+            gap: 8px;
+            margin-bottom: 16px;
         }
         
         .stat-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 15px 10px;
+            border-radius: 10px;
+            padding: 12px 8px;
             text-align: center;
         }
         
         .stat-card.highlight {
             border-color: var(--neon-orange);
             background: linear-gradient(135deg, rgba(247,147,26,0.1), rgba(247,147,26,0.05));
-            grid-column: span 2;
         }
         
         .stat-icon {
-            width: 28px;
-            height: 28px;
-            margin: 0 auto 8px;
+            width: 22px;
+            height: 22px;
+            margin: 0 auto 6px;
         }
         
         .stat-value {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: 700;
             color: var(--neon-green);
-            margin-bottom: 4px;
         }
         
         .stat-card.highlight .stat-value {
             color: var(--neon-orange);
-            font-size: 1.5rem;
+            font-size: 1.3rem;
         }
         
         .stat-label {
             color: var(--text-secondary);
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            margin-top: 2px;
         }
         
         /* Tabs */
         .tabs {
             display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            padding-bottom: 5px;
-        }
-        
-        .tabs::-webkit-scrollbar {
-            display: none;
+            gap: 6px;
+            margin-bottom: 16px;
         }
         
         .tab {
+            flex: 1;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             color: var(--text-secondary);
-            padding: 10px 16px;
+            padding: 10px 8px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 0.8rem;
-            white-space: nowrap;
-            transition: all 0.3s ease;
+            font-size: 0.75rem;
+            text-align: center;
         }
         
         .tab.active {
@@ -222,38 +208,37 @@
             color: var(--neon-blue);
         }
         
-        /* Section */
+        /* Section Header */
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            padding: 0 5px;
+            margin-bottom: 12px;
         }
         
         .section-title {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1rem;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
         
         .section-title svg {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
         }
         
-        .refresh-time {
+        .refresh-badge {
             color: var(--text-secondary);
-            font-size: 0.7rem;
+            font-size: 0.65rem;
         }
         
-        /* Miner Cards - Mobile Optimized */
+        /* Miner Cards */
         .miner-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
         
         .miner-card {
@@ -269,105 +254,103 @@
             box-shadow: 0 0 20px rgba(0,212,255,0.15);
         }
         
-        .miner-card-header {
+        .miner-header {
             display: flex;
             align-items: center;
-            padding: 15px;
+            padding: 14px;
             cursor: pointer;
             gap: 12px;
         }
         
         .miner-rank {
-            width: 36px;
-            height: 36px;
+            width: 34px;
+            height: 34px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 10px;
+            border-radius: 8px;
             font-family: 'Orbitron', sans-serif;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             flex-shrink: 0;
         }
         
-        .miner-rank.rank-1 { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; }
-        .miner-rank.rank-2 { background: linear-gradient(135deg, #c0c0c0, #a0a0a0); color: #000; }
-        .miner-rank.rank-3 { background: linear-gradient(135deg, #cd7f32, #a66828); color: #fff; }
-        .miner-rank.rank-other { background: var(--bg-card-hover); color: var(--text-secondary); }
+        .miner-rank.gold { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; }
+        .miner-rank.silver { background: linear-gradient(135deg, #c0c0c0, #a0a0a0); color: #000; }
+        .miner-rank.bronze { background: linear-gradient(135deg, #cd7f32, #a66828); color: #fff; }
+        .miner-rank.normal { background: var(--bg-card-hover); color: var(--text-secondary); }
         
-        .miner-main-info {
+        .miner-info {
             flex: 1;
             min-width: 0;
         }
         
-        .miner-address-row {
+        .miner-top-row {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 4px;
+            gap: 6px;
+            margin-bottom: 3px;
         }
         
         .online-dot {
-            width: 8px;
-            height: 8px;
+            width: 7px;
+            height: 7px;
             background: var(--neon-green);
             border-radius: 50%;
-            box-shadow: 0 0 8px var(--neon-green);
+            box-shadow: 0 0 6px var(--neon-green);
             animation: pulse 1.5s infinite;
-            flex-shrink: 0;
         }
         
         .miner-address {
             font-family: 'JetBrains Mono', monospace;
             color: var(--neon-blue);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 500;
         }
         
         .miner-machine {
             color: var(--text-secondary);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         
-        .miner-hashrate {
+        .miner-stats {
             text-align: right;
             flex-shrink: 0;
         }
         
-        .hashrate-value {
+        .miner-hashrate {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 700;
             color: var(--neon-green);
         }
         
-        .hashrate-label {
+        .miner-uptime {
             font-size: 0.65rem;
             color: var(--text-secondary);
-            text-transform: uppercase;
         }
         
-        .expand-icon {
-            width: 20px;
-            height: 20px;
+        .expand-arrow {
+            width: 18px;
+            height: 18px;
             color: var(--text-secondary);
             transition: transform 0.3s ease;
             flex-shrink: 0;
         }
         
-        .miner-card.expanded .expand-icon {
+        .miner-card.expanded .expand-arrow {
             transform: rotate(180deg);
+            color: var(--neon-blue);
         }
         
         /* Expanded Details */
         .miner-details {
             display: none;
-            padding: 0 15px 15px;
+            background: var(--bg-card-hover);
             border-top: 1px solid var(--border-color);
-            margin-top: 0;
         }
         
         .miner-card.expanded .miner-details {
@@ -377,18 +360,21 @@
         .details-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            padding-top: 15px;
+            gap: 1px;
+            background: var(--border-color);
         }
         
         .detail-item {
             background: var(--bg-card-hover);
-            border-radius: 8px;
             padding: 12px;
         }
         
+        .detail-item.full {
+            grid-column: span 2;
+        }
+        
         .detail-label {
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -397,81 +383,76 @@
         
         .detail-value {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text-primary);
-        }
-        
-        .detail-item.full-width {
-            grid-column: span 2;
-        }
-        
-        .full-address {
             word-break: break-all;
-            font-size: 0.75rem;
+        }
+        
+        .detail-value.highlight {
             color: var(--neon-blue);
         }
         
-        /* All-Time Registry Cards */
+        /* Registry Cards */
         .registry-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 12px;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 10px;
         }
         
-        .registry-header {
+        .registry-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
         
         .registry-id {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: var(--neon-orange);
             font-weight: 700;
         }
         
-        .registry-status {
+        .status-badge {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 0.75rem;
-            padding: 4px 10px;
-            border-radius: 12px;
+            gap: 5px;
+            font-size: 0.7rem;
+            padding: 4px 8px;
+            border-radius: 10px;
         }
         
-        .registry-status.online {
+        .status-badge.online {
             background: rgba(0,255,136,0.1);
             color: var(--neon-green);
         }
         
-        .registry-status.offline {
+        .status-badge.offline {
             background: rgba(255,255,255,0.05);
             color: var(--text-secondary);
         }
         
-        .registry-status-dot {
-            width: 6px;
-            height: 6px;
+        .status-dot {
+            width: 5px;
+            height: 5px;
             border-radius: 50%;
         }
         
-        .registry-status.online .registry-status-dot {
+        .status-badge.online .status-dot {
             background: var(--neon-green);
             animation: pulse 1.5s infinite;
         }
         
-        .registry-status.offline .registry-status-dot {
-            background: #444;
+        .status-badge.offline .status-dot {
+            background: #555;
         }
         
-        .registry-info {
+        .registry-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            gap: 8px;
         }
         
         .registry-item {
@@ -485,65 +466,65 @@
         }
         
         .registry-label {
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             color: var(--text-secondary);
             text-transform: uppercase;
         }
         
         .registry-value {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
         
-        /* Winners Cards */
+        /* Winner Card */
         .winner-card {
             background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(255,215,0,0.02));
             border: 1px solid var(--neon-gold);
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
+            padding: 16px;
+            margin-bottom: 12px;
         }
         
-        .winner-header {
+        .winner-top {
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 15px;
+            margin-bottom: 14px;
         }
         
         .winner-trophy {
-            width: 45px;
-            height: 45px;
+            width: 40px;
+            height: 40px;
         }
         
         .winner-title {
             font-family: 'Orbitron', sans-serif;
             color: var(--neon-gold);
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
         
-        .winner-address {
+        .winner-addr {
             font-family: 'JetBrains Mono', monospace;
             color: var(--text-secondary);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
         }
         
         .winner-rewards {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 10px;
+            margin-bottom: 12px;
         }
         
         .reward-box {
-            background: rgba(0,0,0,0.2);
+            background: rgba(0,0,0,0.3);
             border-radius: 8px;
-            padding: 12px;
+            padding: 10px;
             text-align: center;
         }
         
         .reward-label {
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             color: var(--text-secondary);
             text-transform: uppercase;
             margin-bottom: 4px;
@@ -551,7 +532,7 @@
         
         .reward-value {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 700;
         }
         
@@ -560,40 +541,40 @@
         
         .winner-meta {
             display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
+            gap: 12px;
             color: var(--text-secondary);
-            font-size: 0.8rem;
-            padding-top: 12px;
+            font-size: 0.75rem;
+            padding-top: 10px;
             border-top: 1px solid rgba(255,215,0,0.2);
         }
         
         /* No Data */
         .no-data {
             text-align: center;
-            padding: 60px 20px;
+            padding: 50px 20px;
             color: var(--text-secondary);
         }
         
         .no-data-icon {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 15px;
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 12px;
             opacity: 0.5;
         }
         
         .no-data p {
-            font-size: 0.95rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
         }
         
         /* Footer */
         footer {
             text-align: center;
-            padding: 30px 15px;
+            padding: 25px 15px;
             border-top: 1px solid var(--border-color);
-            margin-top: 30px;
+            margin-top: 25px;
             color: var(--text-secondary);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
         }
         
         footer a {
@@ -605,12 +586,12 @@
         .loading {
             display: flex;
             justify-content: center;
-            padding: 60px;
+            padding: 50px;
         }
         
         .spinner {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border: 3px solid rgba(0,212,255,0.2);
             border-top-color: var(--neon-blue);
             border-radius: 50%;
@@ -621,7 +602,7 @@
             to { transform: rotate(360deg); }
         }
         
-        /* Tab content */
+        /* Tab Content */
         .tab-content {
             display: none;
         }
@@ -630,24 +611,13 @@
             display: block;
         }
         
-        /* Desktop Enhancements */
+        /* Desktop */
         @media (min-width: 768px) {
-            .container { padding: 20px; }
-            .stats-grid { 
-                grid-template-columns: repeat(3, 1fr); 
-                gap: 15px;
-            }
-            .stat-card.highlight { grid-column: span 1; }
-            .stat-value { font-size: 1.5rem; }
-            .stat-card.highlight .stat-value { font-size: 1.5rem; }
-            .logo-text { font-size: 1.6rem; }
-            .miner-list { gap: 15px; }
+            .container { max-width: 800px; padding: 20px; }
+            .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+            .stat-value { font-size: 1.3rem; }
             .details-grid { grid-template-columns: repeat(4, 1fr); }
-            .detail-item.full-width { grid-column: span 4; }
-        }
-        
-        @media (min-width: 1024px) {
-            .stats-grid { grid-template-columns: repeat(6, 1fr); }
+            .detail-item.full { grid-column: span 4; }
         }
     </style>
 </head>
@@ -667,17 +637,16 @@
             </div>
         </header>
         
-        <!-- Stats Grid -->
+        <!-- Stats -->
         <div class="stats-grid">
             <div class="stat-card">
                 <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
                 <div class="stat-value" id="minersOnline">-</div>
-                <div class="stat-label">Online Now</div>
+                <div class="stat-label">Online</div>
             </div>
             <div class="stat-card">
                 <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
@@ -687,7 +656,7 @@
                     <line x1="23" y1="11" x2="17" y2="11"/>
                 </svg>
                 <div class="stat-value" id="totalRegistered">-</div>
-                <div class="stat-label">Total Miners</div>
+                <div class="stat-label">Registered</div>
             </div>
             <div class="stat-card">
                 <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
@@ -698,13 +667,19 @@
             </div>
             <div class="stat-card">
                 <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
-                    <rect x="3" y="3" width="7" height="7"/>
-                    <rect x="14" y="3" width="7" height="7"/>
-                    <rect x="14" y="14" width="7" height="7"/>
-                    <rect x="3" y="14" width="7" height="7"/>
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
                 </svg>
                 <div class="stat-value" id="totalHashes">-</div>
                 <div class="stat-label">Hashes</div>
+            </div>
+            <div class="stat-card">
+                <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <div class="stat-value" id="totalSessions">-</div>
+                <div class="stat-label">Sessions</div>
             </div>
             <div class="stat-card highlight">
                 <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2">
@@ -719,36 +694,35 @@
         <!-- Tabs -->
         <div class="tabs">
             <button class="tab active" onclick="showTab('online', this)">🟢 Online</button>
-            <button class="tab" onclick="showTab('alltime', this)">📊 All Miners</button>
+            <button class="tab" onclick="showTab('registry', this)">📋 Registry</button>
             <button class="tab" onclick="showTab('winners', this)">🏆 Winners</button>
         </div>
         
-        <!-- Online Miners Tab -->
+        <!-- Online Tab -->
         <div id="tab-online" class="tab-content active">
             <div class="section-header">
                 <h2 class="section-title">
                     <svg viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                     </svg>
-                    Currently Mining
+                    Mining Now
                 </h2>
-                <span class="refresh-time">Auto-refresh 30s</span>
+                <span class="refresh-badge">Updates 30s</span>
             </div>
-            <div class="miner-list" id="onlineMinersList">
+            <div class="miner-list" id="minerList">
                 <div class="loading"><div class="spinner"></div></div>
             </div>
         </div>
         
-        <!-- All-Time Registry Tab -->
-        <div id="tab-alltime" class="tab-content">
+        <!-- Registry Tab -->
+        <div id="tab-registry" class="tab-content">
             <div class="section-header">
                 <h2 class="section-title">
                     <svg viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                         <polyline points="14 2 14 8 20 8"/>
                     </svg>
-                    All-Time Registry
+                    All-Time Miners
                 </h2>
             </div>
             <div id="registryList">
@@ -779,32 +753,28 @@
         </div>
         
         <footer>
-            <p>Updates every 30 seconds</p>
-            <p style="margin-top: 8px;">
+            <p>Auto-refreshes every 30 seconds</p>
+            <p style="margin-top: 6px;">
                 <a href="https://macmetalminer.com">Home</a> · 
                 <a href="https://github.com/MacMetalMiner/MacMetal-Miner">GitHub</a> ·
                 <a href="https://discord.gg/86dnKhpV7P">Discord</a>
             </p>
-            <p style="margin-top: 10px; font-size: 0.7rem;">
-                © 2025 <a href="https://distributedledgertechnologies.com">DLT</a>
-            </p>
+            <p style="margin-top: 8px; font-size: 0.65rem;">© 2025 <a href="https://distributedledgertechnologies.com">DLT</a></p>
         </footer>
     </div>
     
     <script>
-        const API_URL = 'https://api.macmetalminer.com/stats.php';
-        const FULL_API_URL = 'https://api.macmetalminer.com/leaderboard.php';
+        const API = 'https://api.macmetalminer.com/stats.php';
+        const REGISTRY_API = 'https://api.macmetalminer.com/leaderboard.php';
         
-        // Format functions
         function formatHashrate(h) {
             if (h >= 1e12) return (h / 1e12).toFixed(2) + ' TH/s';
             if (h >= 1e9) return (h / 1e9).toFixed(2) + ' GH/s';
             if (h >= 1e6) return (h / 1e6).toFixed(2) + ' MH/s';
-            if (h >= 1e3) return (h / 1e3).toFixed(0) + ' KH/s';
-            return h + ' H/s';
+            return Math.round(h / 1e3) + ' KH/s';
         }
         
-        function formatNumber(n) {
+        function formatNum(n) {
             if (n >= 1e15) return (n / 1e15).toFixed(1) + 'P';
             if (n >= 1e12) return (n / 1e12).toFixed(1) + 'T';
             if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
@@ -812,86 +782,76 @@
             return n.toLocaleString();
         }
         
-        function formatUptime(seconds) {
-            const days = Math.floor(seconds / 86400);
-            const hours = Math.floor((seconds % 86400) / 3600);
-            const mins = Math.floor((seconds % 3600) / 60);
-            if (days > 0) return `${days}d ${hours}h`;
-            if (hours > 0) return `${hours}h ${mins}m`;
-            return `${mins}m`;
+        function formatUptime(s) {
+            const d = Math.floor(s / 86400);
+            const h = Math.floor((s % 86400) / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            if (d > 0) return d + 'd ' + h + 'h';
+            if (h > 0) return h + 'h ' + m + 'm';
+            return m + 'm';
         }
         
-        function formatDate(dateStr) {
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+        function formatDate(str) {
+            return new Date(str).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
         }
         
-        function timeAgo(dateStr) {
-            const date = new Date(dateStr);
-            const now = new Date();
-            const seconds = Math.floor((now - date) / 1000);
-            if (seconds < 60) return 'Just now';
-            if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
-            if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
-            return Math.floor(seconds / 86400) + 'd ago';
+        function timeAgo(str) {
+            const s = Math.floor((new Date() - new Date(str)) / 1000);
+            if (s < 60) return 'Just now';
+            if (s < 3600) return Math.floor(s / 60) + 'm ago';
+            if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+            return Math.floor(s / 86400) + 'd ago';
         }
         
-        // Tab switching
-        function showTab(tabName, btn) {
+        function showTab(name, btn) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             btn.classList.add('active');
-            document.getElementById('tab-' + tabName).classList.add('active');
+            document.getElementById('tab-' + name).classList.add('active');
         }
         
-        // Toggle miner card expansion
-        function toggleMiner(card) {
-            card.classList.toggle('expanded');
+        function toggleCard(el) {
+            el.classList.toggle('expanded');
         }
         
-        // Fetch stats
         async function fetchStats() {
             try {
-                const response = await fetch(API_URL);
-                const data = await response.json();
+                const res = await fetch(API);
+                const data = await res.json();
+                if (!data.success) return;
                 
-                if (!data.success) throw new Error('API error');
-                
-                // Update stats
                 document.getElementById('minersOnline').textContent = data.network.miners_online;
                 document.getElementById('networkHashrate').textContent = formatHashrate(data.network.total_hashrate);
-                document.getElementById('totalHashes').textContent = formatNumber(data.network.total_hashes);
+                document.getElementById('totalHashes').textContent = formatNum(data.network.total_hashes);
                 
-                // Online miners list
-                const list = document.getElementById('onlineMinersList');
+                const list = document.getElementById('minerList');
                 if (data.leaderboard.length === 0) {
                     list.innerHTML = `
                         <div class="no-data">
                             <svg class="no-data-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
                             </svg>
-                            <p>No miners online.<br>Start mining to appear!</p>
-                        </div>
-                    `;
+                            <p>No miners online right now.<br>Start mining to appear here!</p>
+                        </div>`;
                 } else {
                     list.innerHTML = data.leaderboard.map((m, i) => `
-                        <div class="miner-card" onclick="toggleMiner(this)">
-                            <div class="miner-card-header">
-                                <div class="miner-rank ${i < 3 ? 'rank-' + (i+1) : 'rank-other'}">
+                        <div class="miner-card" onclick="toggleCard(this)">
+                            <div class="miner-header">
+                                <div class="miner-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : 'normal'}">
                                     ${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
                                 </div>
-                                <div class="miner-main-info">
-                                    <div class="miner-address-row">
+                                <div class="miner-info">
+                                    <div class="miner-top-row">
                                         <span class="online-dot"></span>
                                         <span class="miner-address">${m.address_short}</span>
                                     </div>
                                     <div class="miner-machine">${m.machine}</div>
                                 </div>
-                                <div class="miner-hashrate">
-                                    <div class="hashrate-value">${formatHashrate(m.hashrate)}</div>
-                                    <div class="hashrate-label">Hashrate</div>
+                                <div class="miner-stats">
+                                    <div class="miner-hashrate">${formatHashrate(m.hashrate)}</div>
+                                    <div class="miner-uptime">${formatUptime(m.uptime)}</div>
                                 </div>
-                                <svg class="expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg class="expand-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="6 9 12 15 18 9"/>
                                 </svg>
                             </div>
@@ -902,16 +862,12 @@
                                         <div class="detail-value">${m.gpu || 'Apple Silicon'}</div>
                                     </div>
                                     <div class="detail-item">
-                                        <div class="detail-label">Uptime</div>
-                                        <div class="detail-value">${formatUptime(m.uptime)}</div>
-                                    </div>
-                                    <div class="detail-item">
                                         <div class="detail-label">Pool</div>
                                         <div class="detail-value">${m.pool || '-'}</div>
                                     </div>
                                     <div class="detail-item">
                                         <div class="detail-label">Total Hashes</div>
-                                        <div class="detail-value">${formatNumber(m.total_hashes)}</div>
+                                        <div class="detail-value">${formatNum(m.total_hashes)}</div>
                                     </div>
                                     <div class="detail-item">
                                         <div class="detail-label">Session Shares</div>
@@ -921,9 +877,13 @@
                                         <div class="detail-label">Best Diff</div>
                                         <div class="detail-value">${m.best_diff || 0}</div>
                                     </div>
-                                    <div class="detail-item full-width">
+                                    <div class="detail-item">
+                                        <div class="detail-label">Uptime</div>
+                                        <div class="detail-value">${formatUptime(m.uptime)}</div>
+                                    </div>
+                                    <div class="detail-item full">
                                         <div class="detail-label">Full Address</div>
-                                        <div class="detail-value full-address">${m.btc_address}</div>
+                                        <div class="detail-value highlight">${m.btc_address}</div>
                                     </div>
                                 </div>
                             </div>
@@ -932,28 +892,27 @@
                 }
                 
                 // Winners
-                const winnersList = document.getElementById('winnersList');
-                if (data.winners.length === 0) {
-                    winnersList.innerHTML = `
+                const winners = document.getElementById('winnersList');
+                if (!data.winners || data.winners.length === 0) {
+                    winners.innerHTML = `
                         <div class="no-data">
                             <svg class="no-data-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <rect x="2" y="4" width="20" height="16" rx="2"/>
                                 <path d="M12 8v4M8 12h8"/>
                             </svg>
                             <p>No blocks won yet.<br>Will YOU be the first?</p>
-                        </div>
-                    `;
+                        </div>`;
                 } else {
-                    winnersList.innerHTML = data.winners.map(w => `
+                    winners.innerHTML = data.winners.map(w => `
                         <div class="winner-card">
-                            <div class="winner-header">
+                            <div class="winner-top">
                                 <svg class="winner-trophy" viewBox="0 0 24 24" fill="none" stroke="#ffd700" stroke-width="2">
                                     <circle cx="12" cy="8" r="7"/>
                                     <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
                                 </svg>
                                 <div>
                                     <div class="winner-title">Block Winner!</div>
-                                    <div class="winner-address">${w.address_short}</div>
+                                    <div class="winner-addr">${w.address_short}</div>
                                 </div>
                             </div>
                             <div class="winner-rewards">
@@ -973,39 +932,36 @@
                         </div>
                     `).join('');
                 }
-                
-            } catch (error) {
-                console.error('Stats error:', error);
-            }
+            } catch (e) { console.error(e); }
         }
         
-        // Fetch registry
         async function fetchRegistry() {
             try {
-                const response = await fetch(FULL_API_URL);
-                const data = await response.json();
+                const res = await fetch(REGISTRY_API);
+                const data = await res.json();
+                if (!data.success) return;
                 
-                if (!data.success) throw new Error('API error');
-                
+                // Update totals
                 document.getElementById('totalRegistered').textContent = data.total_registered || '-';
+                document.getElementById('totalSessions').textContent = data.total_sessions || '-';
                 
                 const list = document.getElementById('registryList');
                 if (!data.registry || data.registry.length === 0) {
-                    list.innerHTML = `<div class="no-data"><p>No miners registered yet.</p></div>`;
+                    list.innerHTML = '<div class="no-data"><p>No miners registered yet.</p></div>';
                 } else {
                     list.innerHTML = data.registry.map(m => `
                         <div class="registry-card">
-                            <div class="registry-header">
+                            <div class="registry-top">
                                 <div class="registry-id">Miner #${m.miner_number}</div>
-                                <div class="registry-status ${m.is_online ? 'online' : 'offline'}">
-                                    <span class="registry-status-dot"></span>
+                                <div class="status-badge ${m.is_online ? 'online' : 'offline'}">
+                                    <span class="status-dot"></span>
                                     ${m.is_online ? 'Online' : 'Offline'}
                                 </div>
                             </div>
-                            <div class="registry-info">
+                            <div class="registry-grid">
                                 <div class="registry-item full">
                                     <span class="registry-label">Address</span>
-                                    <span class="registry-value" style="color: var(--neon-blue);">${m.address_short}</span>
+                                    <span class="registry-value" style="color:var(--neon-blue);">${m.address_short}</span>
                                 </div>
                                 <div class="registry-item">
                                     <span class="registry-label">Machine</span>
@@ -1020,38 +976,31 @@
                                     <span class="registry-value">${formatDate(m.first_seen)}</span>
                                 </div>
                                 <div class="registry-item">
-                                    <span class="registry-label">Last Seen</span>
+                                    <span class="registry-label">Last Active</span>
                                     <span class="registry-value">${timeAgo(m.last_seen)}</span>
                                 </div>
                             </div>
                         </div>
                     `).join('');
                 }
-                
-            } catch (error) {
-                console.error('Registry error:', error);
-            }
+            } catch (e) { console.error(e); }
         }
         
-        // Fetch jackpot
         async function fetchJackpot() {
             try {
-                const response = await fetch('https://api.coinbase.com/v2/prices/BTC-USD/spot');
-                const data = await response.json();
-                const price = parseFloat(data.data.amount);
-                const jackpot = price * 3.125;
+                const res = await fetch('https://api.coinbase.com/v2/prices/BTC-USD/spot');
+                const data = await res.json();
+                const jackpot = parseFloat(data.data.amount) * 3.125;
                 document.getElementById('jackpot').textContent = '$' + Math.round(jackpot).toLocaleString();
             } catch (e) {
                 document.getElementById('jackpot').textContent = '$274,000';
             }
         }
         
-        // Init
         fetchStats();
         fetchRegistry();
         fetchJackpot();
         
-        // Auto-refresh
         setInterval(fetchStats, 30000);
         setInterval(fetchRegistry, 60000);
         setInterval(fetchJackpot, 60000);
