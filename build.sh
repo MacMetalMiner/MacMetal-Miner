@@ -1,22 +1,20 @@
 #!/bin/bash
+# ═══════════════════════════════════════════════════════════════════════════════
+#  MacMetal CLI Miner v2.1 - GPU Edition
+#  Build Script for Apple Silicon Macs
 #
-# MacMetal Miner v1.0 - Build Script
-# Copyright (c) 2025 David Otero / Distributed Ledger Technologies
-# www.distributedledgertechnologies.com
-#
-# SOURCE-AVAILABLE - See LICENSE for terms
-#
-
-set -e
+#  Copyright (c) 2025 David Otero / Distributed Ledger Technologies
+#  www.distributedledgertechnologies.com
+# ═══════════════════════════════════════════════════════════════════════════════
 
 echo ""
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║           MacMetal Miner v1.0 - Build Script               ║"
-echo "║     Copyright 2025 David Otero / Distributed Ledger Tech   ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo "╔══════════════════════════════════════════════════════════════════════════╗"
+echo "║           MacMetal CLI Miner v2.1 - GPU Edition                          ║"
+echo "║                      Build Script                                        ║"
+echo "╚══════════════════════════════════════════════════════════════════════════╝"
 echo ""
 
-# Check for Xcode command line tools
+# Check for Swift
 if ! command -v swiftc &> /dev/null; then
     echo "❌ Swift compiler not found!"
     echo "   Please install Xcode Command Line Tools:"
@@ -24,45 +22,28 @@ if ! command -v swiftc &> /dev/null; then
     exit 1
 fi
 
-# Check macOS version
-MACOS_VERSION=$(sw_vers -productVersion)
-echo "✓ macOS version: $MACOS_VERSION"
+echo "[BUILD] Compiling main.swift with Metal GPU support..."
+swiftc -O -o MacMetalCLI main.swift -framework Metal -framework CoreGraphics 2>&1
 
-# Check for Apple Silicon
-ARCH=$(uname -m)
-echo "✓ Architecture: $ARCH"
-
-# Check for Metal shader
-if [ ! -f "SHA256.metal" ]; then
-    echo "❌ SHA256.metal not found in current directory!"
-    exit 1
-fi
-echo "✓ Metal shader found"
-
-# Compile
-echo ""
-echo "Compiling..."
-swiftc -O -o BTCMiner main.swift \
-    -framework Metal \
-    -framework Foundation \
-    -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __info_plist -Xlinker /dev/null
-
-# Check result
-if [ -f "BTCMiner" ]; then
+if [ $? -eq 0 ]; then
+    echo "[BUILD] ✅ MacMetalCLI built successfully!"
+    chmod +x MacMetalCLI
     echo ""
-    echo "✅ Build successful!"
-    echo ""
-    echo "Binary size: $(du -h BTCMiner | cut -f1)"
+    echo "═══════════════════════════════════════════════════════════════════════════"
+    echo "BUILD COMPLETE!"
+    echo "═══════════════════════════════════════════════════════════════════════════"
     echo ""
     echo "Usage:"
-    echo "  ./BTCMiner <BITCOIN_ADDRESS>"
+    echo "  ./MacMetalCLI <bitcoin_address> --pool <host:port>"
     echo ""
-    echo "Example:"
-    echo "  ./BTCMiner bc1qYourBitcoinAddressHere"
+    echo "Examples:"
+    echo "  # Connect to Ayedex Pool (local)"
+    echo "  ./MacMetalCLI bc1q... --pool 127.0.0.1:3333"
     echo ""
-    echo "GUI version with auto-start: https://winnertakeall.gumroad.com/l/bitcoin"
+    echo "  # Connect to public pool"
+    echo "  ./MacMetalCLI bc1q... --pool public-pool.io:21496"
     echo ""
 else
-    echo "❌ Build failed!"
+    echo "[BUILD] ❌ Build failed!"
     exit 1
 fi
