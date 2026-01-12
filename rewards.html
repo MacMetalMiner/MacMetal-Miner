@@ -4,6 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MMM Rewards Program | MacMetal Miner</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Earn MMM tokens mining Bitcoin on your Mac. Reduce pool fees from 2% to 0% or even earn bonus BTC with negative fees up to -3%. Optimized for Apple Silicon M1-M4 chips.">
+    <meta name="keywords" content="Bitcoin mining, Mac mining, Apple Silicon, M1 M2 M3 M4, crypto rewards, MMM token, pool fees, MacMetal Miner">
+    <meta name="author" content="MacMetalMiner">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://macmetalminer.com/rewards">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://macmetalminer.com/rewards">
+    <meta property="og:title" content="MMM Rewards Program | MacMetal Miner">
+    <meta property="og:description" content="Earn MMM tokens mining Bitcoin on your Mac. Reduce pool fees from 2% to 0% or even earn bonus BTC with negative fees up to -3%.">
+    <meta property="og:image" content="https://macmetalminer.com/images/mmm-rewards-og.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="MacMetal Miner">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://macmetalminer.com/rewards">
+    <meta name="twitter:title" content="MMM Rewards Program | MacMetal Miner">
+    <meta name="twitter:description" content="Earn MMM tokens mining Bitcoin on your Mac. Reduce pool fees from 2% to 0% or even earn bonus BTC with negative fees up to -3%.">
+    <meta name="twitter:image" content="https://macmetalminer.com/images/mmm-rewards-twitter.png">
+    
+    <!-- Additional Meta -->
+    <meta name="theme-color" content="#0d0d14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "MacMetal Miner Pro Max",
+        "operatingSystem": "macOS",
+        "applicationCategory": "FinanceApplication",
+        "description": "Bitcoin mining software optimized for Apple Silicon Macs with MMM token rewards program that reduces pool fees from 2% to negative rates.",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "description": "Free to start mining, earn MMM tokens to reduce fees"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "ratingCount": "150"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "MacMetalMiner",
+            "url": "https://macmetalminer.com"
+        },
+        "featureList": [
+            "Apple Silicon GPU optimization (M1, M2, M3, M4)",
+            "MMM token rewards system",
+            "Fee reduction from 2% to -3%",
+            "Real-time hashrate monitoring",
+            "Multiple pool support"
+        ]
+    }
+    </script>
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
     <style>
@@ -11,6 +76,10 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
         }
 
         :root {
@@ -34,6 +103,8 @@
             color: var(--text-primary);
             line-height: 1.6;
             overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-text-size-adjust: 100%;
         }
 
         /* Animated background */
@@ -628,6 +699,226 @@
             
             .nav-links {
                 display: none;
+            }
+            
+            .fee-tiers {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+            
+            .fee-tier {
+                padding: 20px 15px;
+            }
+            
+            .fee-tier .mmm-amount {
+                font-size: 1.2rem;
+            }
+            
+            .fee-tier .fee-rate {
+                font-size: 1.6rem;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            table {
+                font-size: 0.9rem;
+            }
+            
+            th, td {
+                padding: 12px 8px;
+            }
+            
+            .chart-card {
+                padding: 20px;
+            }
+            
+            .calc-result {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                font-size: 14px;
+            }
+            
+            .container {
+                padding: 0 15px;
+            }
+            
+            nav {
+                padding: 15px;
+            }
+            
+            .logo {
+                font-size: 1.3rem;
+            }
+            
+            .hero {
+                padding: 80px 0 40px;
+            }
+            
+            .hero h1 {
+                font-size: 1.8rem;
+                line-height: 1.3;
+            }
+            
+            .hero p {
+                font-size: 1rem;
+            }
+            
+            #hero-lottie {
+                width: 60px !important;
+                height: 60px !important;
+            }
+            
+            section {
+                padding: 40px 0;
+            }
+            
+            h2 {
+                font-size: 1.6rem;
+            }
+            
+            .fee-tiers {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            
+            .fee-tier {
+                padding: 15px 10px;
+                border-radius: 12px;
+            }
+            
+            .fee-tier .mmm-amount {
+                font-size: 1rem;
+            }
+            
+            .fee-tier .fee-rate {
+                font-size: 1.4rem;
+            }
+            
+            .fee-tier .label {
+                font-size: 0.75rem;
+            }
+            
+            .how-it-works-step {
+                padding: 20px;
+            }
+            
+            .icon-svg {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .icon-svg.large {
+                width: 60px;
+                height: 60px;
+            }
+            
+            #step2-lottie {
+                width: 40px !important;
+                height: 40px !important;
+            }
+            
+            table {
+                font-size: 0.8rem;
+            }
+            
+            th, td {
+                padding: 10px 6px;
+            }
+            
+            .chart-card {
+                padding: 15px;
+                border-radius: 15px;
+            }
+            
+            .chart-card h3 {
+                font-size: 1rem;
+            }
+            
+            .chart-container {
+                height: 250px;
+            }
+            
+            .calc-item {
+                padding: 15px;
+            }
+            
+            .calc-item label {
+                font-size: 0.85rem;
+            }
+            
+            .calc-item select, .calc-item input {
+                padding: 10px;
+                font-size: 0.95rem;
+            }
+            
+            .result-item {
+                padding: 15px;
+            }
+            
+            .result-item .value {
+                font-size: 1.3rem;
+            }
+            
+            .timeline-content {
+                padding: 20px;
+            }
+            
+            .timeline-content h4 {
+                font-size: 1rem;
+            }
+            
+            .timeline-item {
+                padding-left: 40px;
+            }
+            
+            .timeline-item:nth-child(even) {
+                padding-left: 40px;
+            }
+            
+            .timeline::before {
+                left: 15px;
+            }
+            
+            .timeline-dot {
+                left: 15px;
+                width: 12px;
+                height: 12px;
+            }
+            
+            .warning-box {
+                padding: 20px;
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .warning-icon {
+                font-size: 2rem;
+                margin-bottom: 10px;
+            }
+            
+            .cta {
+                padding: 40px 0;
+            }
+            
+            .cta h2 {
+                font-size: 1.5rem;
+            }
+            
+            .cta-button {
+                padding: 15px 30px;
+                font-size: 1rem;
+            }
+            
+            footer {
+                padding: 30px 0;
             }
         }
 
