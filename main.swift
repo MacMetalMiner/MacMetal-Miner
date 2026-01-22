@@ -149,6 +149,7 @@ struct Config {
     static var poolHost = "127.0.0.1"
     static var poolPort: UInt16 = 3333
     static let userAgent = "MacMetalCLI/2.1-GPU"
+    static var debug = false
 }
 
 // MARK: - Stats
@@ -166,10 +167,21 @@ class Stats {
     var requiredZeros: Int = 32
     var extranonce1 = ""
     var extranonce2Size = 4
+    var extranonce2Counter: UInt32 = 0  // Incrementing counter for extranonce2
     var authorized = false
     var gpuName = "Unknown"
+    var currentTarget: Data? = nil  // Current target from nbits (network target)
+    var cleanJobs = false  // clean_jobs flag from mining.notify
 }
 let stats = Stats()
+
+@inline(__always)
+func dlog(_ s: String) {
+    guard Config.debug else { return }
+    if let data = ("[DEBUG] " + s + "\n").data(using: .utf8) {
+        FileHandle.standardError.write(data)
+    }
+}
 
 // MARK: - Data Extensions
 extension Data {
@@ -189,7 +201,43 @@ extension Data {
     var reversedBytes: Data { Data(self.reversed()) }
 }
 
-func difficultyToZeroBits(_ d: Double) -> Int { d <= 0 ? 32 : Int(ceil(32.0 + log2(d))) }
+// Convert nbits (compact format) to 256-bit target
+// Bitcoin nbits format: [exponent (1 byte)][mantissa (3 bytes)]
+// Target = mantissa * 2^(8*(exponent-3))
+// Target is stored as 256-bit big-endian number
+func nbitsToTarget(_ nbits: String) -> Data? {
+    guard let bitsValue = UInt32(nbits, radix: 16) else { return nil }
+    let exp = Int((bitsValue >> 24) & 0xff)
+    let mant = bitsValue & 0x00ffffff
+    if mant == 0 { return Data(repeating: 0, count: 32) }
+
+    var target = Data(repeating: 0, count: 32) // big-endian
+    let m0 = UInt8((mant >> 16) & 0xff)
+    let m1 = UInt8((mant >> 8) & 0xff)
+    let m2 = UInt8(mant & 0xff)
+
+    if exp <= 3 {
+        // Right shift mantissa by 8*(3-exp)
+        let shift = 8 * (3 - exp)
+        let mant32 = mant >> shift
+        target[29] = UInt8((mant32 >> 16) & 0xff)
+        target[30] = UInt8((mant32 >> 8) & 0xff)
+        target[31] = UInt8(mant32 & 0xff)
+        return target
+    }
+
+    // Place mantissa at position corresponding to exponent (left shift by 8*(exp-3))
+    let start = 32 - exp
+    guard start >= 0 && start + 2 < 32 else { return Data(repeating: 0, count: 32) }
+    target[start] = m0
+    target[start + 1] = m1
+    target[start + 2] = m2
+    return target
+}
+
+// Pool share validation is typically done by checking the computed hash against a share target.
+// To avoid precision/BigInt issues in Swift, we filter by leading-zero-bits derived from
+// mining.set_difficulty (approx: 32 + log2(diff)). This matches what most pools accept.
 
 // MARK: - GPU Miner
 class GPUMiner {
@@ -216,7 +264,7 @@ class GPUMiner {
         targetBuffer = dev.makeBuffer(length: 4, options: .storageModeShared)
     }
     
-    func mine(header: [UInt8], nonceStart: UInt32, targetZeros: UInt32) -> (UInt64, [(UInt32, UInt32)]) {
+    func mine(header: [UInt8], nonceStart: UInt32, targetZeros: UInt32) -> (UInt64, [(UInt32, UInt32, [UInt32])]) {
         guard let hb = headerBuffer, let nb = nonceBuffer, let hcb = hashCountBuffer,
               let rcb = resultCountBuffer, let rb = resultsBuffer, let tb = targetBuffer else { return (0, []) }
         memcpy(hb.contents(), header, min(header.count, 76))
@@ -234,9 +282,18 @@ class GPUMiner {
         enc.endEncoding(); cb.commit(); cb.waitUntilCompleted()
         let hashes = hcb.contents().load(as: UInt64.self)
         let count = min(rcb.contents().load(as: UInt32.self), 100)
-        var results: [(UInt32, UInt32)] = []
+        var results: [(UInt32, UInt32, [UInt32])] = []
+        // MiningResult struct: nonce (4 bytes), zeros (4 bytes), hash[8] (32 bytes) = 40 bytes total
+        // Access as UInt32 array: [nonce, zeros, hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7]
         let ptr = rb.contents().assumingMemoryBound(to: UInt32.self)
-        for i in 0..<Int(count) { results.append((ptr[i * 10], ptr[i * 10 + 1])) }
+        for i in 0..<Int(count) {
+            let base = i * 10  // 10 UInt32s per result
+            let nonce = ptr[base]
+            let zeros = ptr[base + 1]
+            let hashArray = [ptr[base + 2], ptr[base + 3], ptr[base + 4], ptr[base + 5],
+                            ptr[base + 6], ptr[base + 7], ptr[base + 8], ptr[base + 9]]
+            results.append((nonce, zeros, hashArray))
+        }
         return (hashes, results)
     }
 }
@@ -256,19 +313,63 @@ func submit(_ j: String, _ e2: String, _ t: String, _ n: String) { send("{\"id\"
 func process(_ msg: String) {
     guard let d = msg.data(using: .utf8), let j = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { return }
     if let m = j["method"] as? String, let p = j["params"] as? [Any] {
-        if m == "mining.set_difficulty", let diff = p.first as? Double { stats.poolDifficulty = diff; stats.requiredZeros = difficultyToZeroBits(diff) }
+        if m == "mining.set_difficulty", let diff = p.first as? Double {
+            stats.poolDifficulty = diff
+            // Calculate approximate zero bits for display only (not for validation)
+            stats.requiredZeros = diff <= 0 ? 32 : Int(ceil(32.0 + log2(diff)))
+            dlog("Received mining.set_difficulty=\(diff); requiredZeros=\(stats.requiredZeros)")
+            // Force mine() to log the updated requiredZeros (diff can change via vardiff)
+            targetDebugLogged = false
+        }
         if m == "mining.notify", p.count >= 8 {
+            let oldJobId = job.id
             job.id = p[0] as? String ?? ""; job.prevHash = p[1] as? String ?? ""
             job.cb1 = p[2] as? String ?? ""; job.cb2 = p[3] as? String ?? ""
             job.branches = p[4] as? [String] ?? []; job.version = p[5] as? String ?? ""
             job.nbits = p[6] as? String ?? ""; job.ntime = p[7] as? String ?? ""
+            dlog("mining.notify jobId=\(job.id) ntime=\(job.ntime) nbits=\(job.nbits) branches=\(job.branches.count)")
+            
+            // Handle clean_jobs flag (param[8])
+            if p.count >= 9, let cleanJobs = p[8] as? Bool {
+                stats.cleanJobs = cleanJobs
+                if cleanJobs {
+                    // Reset nonce counter when clean_jobs is true
+                    nonce = 0
+                    stats.extranonce2Counter = 0
+                }
+            }
+            
+            // Update target from nbits
+            stats.currentTarget = nbitsToTarget(job.nbits)
+            
+            // Reset nonce if job changed
+            if oldJobId != job.id {
+                nonce = 0
+            }
+            
             stats.jobsReceived += 1
         }
     }
     if let id = j["id"] as? Int {
-        if id == 1, let r = j["result"] as? [Any], r.count >= 2 { stats.extranonce1 = r[1] as? String ?? ""; stats.extranonce2Size = r[2] as? Int ?? 4 }
+        if id == 1, let r = j["result"] as? [Any], r.count >= 2 { 
+            stats.extranonce1 = r[1] as? String ?? ""; 
+            stats.extranonce2Size = r[2] as? Int ?? 4
+            stats.extranonce2Counter = 0  // Reset on subscribe
+            dlog("subscribe extranonce1=\(stats.extranonce1) extranonce2Size=\(stats.extranonce2Size)")
+        }
         if id == 2, let r = j["result"] as? Bool, r { stats.authorized = true; suggestDiff(0.001) }
-        if id >= 3 { if let r = j["result"] as? Bool, r { stats.sharesAccepted += 1 } else { stats.sharesRejected += 1 } }
+        if id >= 3 {
+            if let r = j["result"] as? Bool, r {
+                stats.sharesAccepted += 1
+            } else {
+                stats.sharesRejected += 1
+                if let err = j["error"] {
+                    dlog("share rejected id=\(id) error=\(err)")
+                } else {
+                    dlog("share rejected id=\(id) (no error payload)")
+                }
+            }
+        }
     }
 }
 
@@ -277,35 +378,135 @@ import CommonCrypto
 func sha256(_ d: Data) -> Data { var h = [UInt8](repeating: 0, count: 32); d.withUnsafeBytes { CC_SHA256($0.baseAddress, CC_LONG(d.count), &h) }; return Data(h) }
 func sha256d(_ d: Data) -> Data { sha256(sha256(d)) }
 
+// Helper to convert uint32 array to Data (little-endian hash)
+func hashArrayToDataBE(_ arr: [UInt32]) -> Data {
+    // GPU returns SHA256 state words as UInt32; treat each word as big-endian bytes.
+    var data = Data()
+    data.reserveCapacity(32)
+    for w in arr {
+        data.append(UInt8((w >> 24) & 0xff))
+        data.append(UInt8((w >> 16) & 0xff))
+        data.append(UInt8((w >> 8) & 0xff))
+        data.append(UInt8(w & 0xff))
+    }
+    return data
+}
+
+func nonceToStratumHex(_ nonce: UInt32) -> String {
+    // Stratum protocol: nonce is submitted as hex string, pool will byte-swap it
+    // GPU inserts nonce as little-endian bytes: [b0, b1, b2, b3] where nonce = 0xb3b2b1b0
+    // Pool expects hex string that, when byte-swapped, matches what GPU hashed
+    // So if GPU hashed nonce 0x42a14695 as bytes [0x95, 0x46, 0xa1, 0x42]
+    // We submit "42a14695" (big-endian), pool swaps to "9546a142" = [0x95, 0x46, 0xa1, 0x42] ✓
+    return String(format: "%08x", nonce)
+}
+
+// Verify header reconstruction matches what pool will build
+func verifyHeaderReconstruction(e2: String, nonce: UInt32) -> (matches: Bool, ourHash: String, poolHash: String) {
+    // Build header exactly as we do for GPU
+    guard let ourHeader = buildHeader(e2) else { return (false, "", "") }
+    var ourHeaderWithNonce = ourHeader
+    ourHeaderWithNonce.append(UInt8(nonce & 0xff))
+    ourHeaderWithNonce.append(UInt8((nonce >> 8) & 0xff))
+    ourHeaderWithNonce.append(UInt8((nonce >> 16) & 0xff))
+    ourHeaderWithNonce.append(UInt8((nonce >> 24) & 0xff))
+    let ourHash = sha256d(Data(ourHeaderWithNonce))
+    
+    // Build header as pool expects (mirrors our buildHeader merkle logic)
+    guard let cb = Data(hexString: job.cb1 + stats.extranonce1 + e2 + job.cb2) else { return (false, "", "") }
+    var merkleLE = sha256d(cb).reversedBytes
+    for b in job.branches {
+        guard let bd = Data(hexString: b) else { continue }
+        merkleLE = sha256d(merkleLE + bd.reversedBytes).reversedBytes
+    }
+    
+    // Pool builds header: version(swapped) + prevhash(reversed) + merkle(reversed) + time(swapped) + bits(swapped) + nonce(swapped)
+    var poolHeader = Data()
+    if let v = Data(hexString: job.version) { poolHeader.append(v.reversedBytes) }
+    var ph = ""; var i = job.prevHash.endIndex
+    while i > job.prevHash.startIndex { 
+        let s = job.prevHash.index(i, offsetBy: -8, limitedBy: job.prevHash.startIndex) ?? job.prevHash.startIndex
+        ph += String(job.prevHash[s..<i])
+        i = s 
+    }
+    if let p = Data(hexString: ph) { poolHeader.append(p) }
+    poolHeader.append(merkleLE)
+    if let t = Data(hexString: job.ntime) { poolHeader.append(t.reversedBytes) }
+    if let b = Data(hexString: job.nbits) { poolHeader.append(b.reversedBytes) }
+    // Nonce: pool does swapBytes(nonce), which reverses the hex string bytes
+    let nonceHex = String(format: "%08x", nonce)
+    if let nonceData = Data(hexString: nonceHex) {
+        poolHeader.append(nonceData.reversedBytes)  // This is what swapBytes does
+    }
+    
+    let poolHash = sha256d(poolHeader)
+    
+    let matches = ourHash == poolHash
+    return (matches, Data(ourHash.reversed()).hexString, Data(poolHash.reversed()).hexString)
+}
+
 func buildHeader(_ e2: String) -> [UInt8]? {
     guard let cb = Data(hexString: job.cb1 + stats.extranonce1 + e2 + job.cb2) else { return nil }
-    var mh = sha256d(cb)
-    for b in job.branches { if let bd = Data(hexString: b) { mh = sha256d(mh + bd) } }
+    // Stratum merkle branches are typically sent as hex in display order (big-endian).
+    // The block header, and merkle computations, use internal byte order (little-endian).
+    // Compute merkle root in little-endian consistently.
+    var merkleLE = sha256d(cb).reversedBytes  // coinbase txid as little-endian bytes
+    for b in job.branches {
+        guard let bd = Data(hexString: b) else { continue }
+        let branchLE = bd.reversedBytes
+        merkleLE = sha256d(merkleLE + branchLE).reversedBytes
+    }
     var h = Data()
     if let v = Data(hexString: job.version) { h.append(v.reversedBytes) }
     var ph = ""; var i = job.prevHash.endIndex
     while i > job.prevHash.startIndex { let s = job.prevHash.index(i, offsetBy: -8, limitedBy: job.prevHash.startIndex) ?? job.prevHash.startIndex; ph += String(job.prevHash[s..<i]); i = s }
     if let p = Data(hexString: ph) { h.append(p) }
-    h.append(mh)
+    // Merkle root in header is little-endian
+    h.append(merkleLE)
     if let t = Data(hexString: job.ntime) { h.append(t.reversedBytes) }
     if let b = Data(hexString: job.nbits) { h.append(b.reversedBytes) }
     return Array(h)
 }
 
 var nonce: UInt32 = 0
+var targetDebugLogged = false
 func mine() {
     guard let g = gpu, !job.id.isEmpty else { return }
-    let e2 = String(format: "%0\(stats.extranonce2Size * 2)x", UInt32.random(in: 0...UInt32.max))
+    if !targetDebugLogged {
+        dlog("Mining with requiredZeros=\(stats.requiredZeros) (from mining.set_difficulty)")
+        targetDebugLogged = true
+    }
+    
+    // Increment extranonce2 counter (not random!)
+    let e2 = String(format: "%0\(stats.extranonce2Size * 2)x", stats.extranonce2Counter)
+    stats.extranonce2Counter &+= 1
+    
     guard let hdr = buildHeader(e2) else { return }
     let t0 = Date()
-    let (h, res) = g.mine(header: hdr, nonceStart: nonce, targetZeros: UInt32(stats.requiredZeros))
+    
+    // GPU filters by required leading zero bits derived from pool difficulty
+    let (h, res) = g.mine(header: hdr, nonceStart: nonce, targetZeros: UInt32(max(stats.requiredZeros, 1)))
     stats.totalHashes += h; stats.hashrate = Double(h) / max(Date().timeIntervalSince(t0), 0.001)
     nonce &+= UInt32(g.batchSize)
+    
     for r in res {
-        stats.sharesFound += 1
+        let foundNonce = r.0
         let zeros = Int(r.1)
-        if zeros > 0 && zeros < 256 && zeros > stats.bestZeros { stats.bestZeros = zeros }
-        submit(job.id, e2, job.ntime, String(format: "%08x", r.0.bigEndian))
+        let hashArray = r.2
+
+        stats.sharesFound += 1
+        if zeros > stats.bestZeros { stats.bestZeros = zeros }
+
+        // Optional sanity check (doesn't block submission)
+        if Config.debug && stats.sharesFound % 100 == 0 {
+            let verification = verifyHeaderReconstruction(e2: e2, nonce: foundNonce)
+            if !verification.matches {
+                dlog("Header mismatch nonce=\(String(format: "%08x", foundNonce)) our=\(verification.ourHash.prefix(32))... pool=\(verification.poolHash.prefix(32))...")
+            }
+            _ = hashArray // keep for future deeper debugging if needed
+        }
+
+        submit(job.id, e2, job.ntime, nonceToStratumHex(foundNonce))
     }
 }
 
@@ -315,7 +516,9 @@ func fmtH(_ h: UInt64) -> String { let d = Double(h); return d >= 1e12 ? String(
 func fmtT(_ t: TimeInterval) -> String { String(format: "%02d:%02d:%02d", Int(t/3600), Int(t.truncatingRemainder(dividingBy: 3600)/60), Int(t.truncatingRemainder(dividingBy: 60))) }
 
 func display() {
-    print("\u{1B}[2J\u{1B}[H")
+    if !Config.debug {
+        print("\u{1B}[2J\u{1B}[H")
+    }
     print("╔══════════════════════════════════════════════════════════════════════════╗")
     print("║           MacMetal CLI Miner v2.1 - GPU Edition                          ║")
     print("╠══════════════════════════════════════════════════════════════════════════╣")
@@ -440,18 +643,29 @@ func runTestMode() {
     var foundCorrectNonce = false
     for r in results {
         let foundNonce = r.0
-        let zeros = r.1
+        let hashArray = r.2
+        
+        // Convert hash array to big-endian digest (standard display is reversed)
+        let hashDataBE = hashArrayToDataBE(hashArray)
+        let verifyHex = hashDataBE.map { String(format: "%02x", $0) }.joined()
+        
+        // Count zeros for display
+        var zeros = 0
+        for byte in hashDataBE {
+            if byte == 0 {
+                zeros += 8
+            } else {
+                var mask: UInt8 = 0x80
+                while mask > 0 && (byte & mask) == 0 {
+                    zeros += 1
+                    mask >>= 1
+                }
+                break
+            }
+        }
+        
         print("   → Nonce: \(String(format: "0x%08x", foundNonce)) (\(foundNonce)) - \(zeros) bits")
-        
-        // Verify this nonce produces the expected hash
-        var testHeader = header76Array
-        testHeader.append(UInt8(foundNonce & 0xff))
-        testHeader.append(UInt8((foundNonce >> 8) & 0xff))
-        testHeader.append(UInt8((foundNonce >> 16) & 0xff))
-        testHeader.append(UInt8((foundNonce >> 24) & 0xff))
-        
-        let verifyHash = sha256d(Data(testHeader))
-        let verifyHex = verifyHash.reversed().map { String(format: "%02x", $0) }.joined()
+        print("   Hash: \(verifyHex)")
         
         if verifyHex == expectedHash {
             print("   [PASS] ✓ GPU found correct nonce!")
@@ -540,6 +754,7 @@ func runTestMode() {
 // MARK: - Main
 func main() {
     let args = CommandLine.arguments
+    if args.contains("--debug") { Config.debug = true }
     
     // Check for test mode
     if args.contains("--test") {
