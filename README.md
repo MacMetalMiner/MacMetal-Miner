@@ -77,10 +77,10 @@ This is handled automatically based on pool selection.
 
 | Mac Model | Expected Hashrate |
 |-----------|-------------------|
-| MacBook Air M1 | ~400-500 MH/s |
-| MacBook Air M2 | ~500-600 MH/s |
-| MacBook Pro M3 Max | ~2.2 GH/s |
-| Mac Studio M2 Ultra | ~3-3.5 GH/s |
+| MacBook Air M1 | ~40-50 MH/s |
+| MacBook Air M2 | ~50-60 MH/s |
+| MacBook Pro M3 Max | ~350 MH/s |
+| Mac Studio M2 Ultra | ~750 MH/s |
 
 ## Verification
 
