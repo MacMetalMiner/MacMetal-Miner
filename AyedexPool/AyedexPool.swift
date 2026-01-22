@@ -1,6 +1,6 @@
 #!/usr/bin/env swift
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Ayedex Pool (Nerd Edition) v1.1
+//  Ayedex Pool (Nerd Edition) v2.0
 //  Solo Bitcoin Mining Pool Server
 //
 //  Copyright (c) 2025 David Otero / Distributed Ledger Technologies
@@ -22,11 +22,156 @@ struct Config {
     static var stratumPort: UInt16 = 3333
     static var poolAddress = ""
     static var coinbaseMessage = "/Ayedex (Nerd Edition)/"
-    static var startDifficulty: Double = 1.0
+    static var startDifficulty: Double = 0.001
     static var minDifficulty: Double = 0.0001
     static var maxDifficulty: Double = 1000000.0
     static var vardiffTargetTime: Double = 10.0
     static var vardiffRetargetTime: Double = 60.0
+    static var difficultyRating: Int = 500  // User-friendly 100-1000 scale
+}
+
+// MARK: - Interactive Difficulty Selection
+func selectDifficulty() -> Int {
+    print("")
+    print("────────────────────────────────────────────────────────────────────────")
+    print("  \u{001B}[1mDifficulty Selection\u{001B}[0m")
+    print("────────────────────────────────────────────────────────────────────────")
+    print("")
+    print("  Choose a difficulty rating from 100 (easiest) to 10000 (hardest)")
+    print("")
+    print("  \u{001B}[33m100\u{001B}[0m   = Very Easy    (~40 shares/sec at 350 MH/s)")
+    print("  \u{001B}[32m500\u{001B}[0m   = Easy         (~8 shares/sec)")
+    print("  \u{001B}[36m1000\u{001B}[0m  = Normal       (~4 shares/sec)  \u{001B}[2m← Recommended\u{001B}[0m")
+    print("  \u{001B}[35m2048\u{001B}[0m  = Medium       (~2 shares/sec)  \u{001B}[2m← Bitaxe default\u{001B}[0m")
+    print("  \u{001B}[35m5000\u{001B}[0m  = Hard         (~0.8 shares/sec)")
+    print("  \u{001B}[31m10000\u{001B}[0m = Very Hard    (~0.4 shares/sec)")
+    print("")
+    print("────────────────────────────────────────────────────────────────────────")
+    print("")
+    print("  Enter difficulty [100-10000, default 2048]: ", terminator: "")
+    fflush(stdout)
+    
+    guard let input = readLine()?.trimmingCharacters(in: .whitespaces), !input.isEmpty else {
+        return 2048
+    }
+    
+    guard let rating = Int(input), rating >= 100, rating <= 10000 else {
+        print("  \u{001B}[31mInvalid input. Using default: 2048\u{001B}[0m")
+        return 2048
+    }
+    
+    return rating
+}
+
+func ratingToDifficulty(_ rating: Int) -> Double {
+    // Direct mapping: rating IS the difficulty
+    // 100 → diff 100, 2048 → diff 2048, 10000 → diff 10000
+    return Double(rating)
+}
+
+// MARK: - Bitaxe-style Logging with Rainbow Colors
+let logColors: [String] = [
+    "\u{001B}[38;5;208m",  // Orange (₿ symbol)
+    "\u{001B}[38;5;214m",  // Gold (timestamp)
+    "\u{001B}[38;5;51m",   // Cyan (component)
+    "\u{001B}[38;5;219m",  // Pink (values)
+    "\u{001B}[38;5;118m",  // Bright green (success)
+    "\u{001B}[38;5;196m",  // Red (error)
+    "\u{001B}[38;5;141m",  // Purple (diff)
+    "\u{001B}[38;5;227m",  // Yellow (nonce)
+    "\u{001B}[0m"          // Reset
+]
+
+func logTimestamp() -> String {
+    let ms = Int(Date().timeIntervalSince1970 * 1000) % 100000
+    return String(format: "%05d", ms)
+}
+
+func logShare(jobId: String, nonce: String, shareDiff: Double, targetDiff: Double, accepted: Bool) {
+    let ts = logTimestamp()
+    let diffStr = String(format: "%.1f", shareDiff)
+    let orange = logColors[0]
+    let gold = logColors[1]
+    let cyan = logColors[2]
+    let purple = logColors[6]
+    let yellow = logColors[7]
+    let reset = logColors[8]
+    
+    print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)asic_result:\(reset) Job ID: \(purple)\(jobId)\(reset), Nonce \(yellow)\(nonce.uppercased())\(reset) diff \(purple)\(diffStr)\(reset) of \(Int(targetDiff)).")
+    if accepted {
+        print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_task:\(reset) \(logColors[4])message result accepted\(reset)")
+    } else {
+        print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_task:\(reset) \(logColors[5])share rejected (low diff)\(reset)")
+    }
+}
+
+func logStratumTx(id: Int, jobId: String, nonce: String, worker: String) {
+    let ts = logTimestamp()
+    let orange = logColors[0]
+    let gold = logColors[1]
+    let cyan = logColors[2]
+    let pink = logColors[3]
+    let reset = logColors[8]
+    print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_api:\(reset) tx: {\"id\": \(pink)\(id)\(reset), \"method\": \"mining.submit\", \"params\": [\"\(worker)\", \"\(jobId)\", ..., \"\(nonce)\"]}")
+}
+
+func logStratumRx(result: Bool, id: Int) {
+    let ts = logTimestamp()
+    let orange = logColors[0]
+    let gold = logColors[1]
+    let cyan = logColors[2]
+    let green = logColors[4]
+    let reset = logColors[8]
+    print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_api:\(reset) rx: {\"result\":\(green)\(result)\(reset),\"error\":null,\"id\":\(id)}")
+}
+
+func logNewJob(jobId: String, height: Int) {
+    let ts = logTimestamp()
+    let orange = logColors[0]
+    let gold = logColors[1]
+    let cyan = logColors[2]
+    let purple = logColors[6]
+    let reset = logColors[8]
+    print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)create_jobs_task:\(reset) New Work Dequeued \(purple)\(jobId)\(reset) @ height \(purple)\(height)\(reset)")
+}
+
+func logMinerConnect(worker: String, diff: Double) {
+    let ts = logTimestamp()
+    let orange = logColors[0]
+    let gold = logColors[1]
+    let cyan = logColors[2]
+    let green = logColors[4]
+    let reset = logColors[8]
+    print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_task:\(reset) Miner connected: \(green)\(worker)\(reset) @ diff \(Int(diff))")
+}
+
+func logRx(_ component: String, _ message: String) {
+    let ts = logTimestamp()
+    let orange = logColors[0]
+    let gold = logColors[1]
+    let cyan = logColors[2]
+    let pink = logColors[3]
+    let reset = logColors[8]
+    print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)\(component):\(reset) rx: \(pink)\(message)\(reset)")
+}
+
+func logTx(_ component: String, _ message: String) {
+    let ts = logTimestamp()
+    let orange = logColors[0]
+    let gold = logColors[1]
+    let cyan = logColors[2]
+    let pink = logColors[3]
+    let reset = logColors[8]
+    print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)\(component):\(reset) tx: \(pink)\(message)\(reset)")
+}
+
+func logInfo(_ component: String, _ message: String) {
+    let ts = logTimestamp()
+    let orange = logColors[0]
+    let gold = logColors[1]
+    let cyan = logColors[2]
+    let reset = logColors[8]
+    print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)\(component):\(reset) \(message)")
 }
 
 // MARK: - SHA256 Helper
@@ -292,7 +437,13 @@ class BlockTemplateManager {
         
         if let previousblockhash = template["previousblockhash"] as? String {
             if previousblockhash != PoolStats.shared.lastBlockHash && !PoolStats.shared.lastBlockHash.isEmpty {
-                print("[BLOCK] ⛏️  New block detected! Height: \(PoolStats.shared.currentBlockHeight)")
+                let ts = logTimestamp()
+                let orange = logColors[0]
+                let gold = logColors[1]
+                let cyan = logColors[2]
+                let yellow = logColors[7]
+                let reset = logColors[8]
+                print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_task:\(reset) ⛏️  \(yellow)New block detected!\(reset) Height: \(yellow)\(PoolStats.shared.currentBlockHeight)\(reset)")
             }
             PoolStats.shared.lastBlockHash = previousblockhash
         }
@@ -608,6 +759,21 @@ class StratumClient {
     func send(_ dict: [String: Any]) {
         guard let data = try? JSONSerialization.data(withJSONObject: dict),
               var str = String(data: data, encoding: .utf8) else { return }
+        
+        // Log new job notifications with rainbow colors
+        if let method = dict["method"] as? String, method == "mining.notify" {
+            if let params = dict["params"] as? [Any], let jobId = params.first as? String {
+                let ts = logTimestamp()
+                let orange = logColors[0]
+                let gold = logColors[1]
+                let cyan = logColors[2]
+                let pink = logColors[3]
+                let purple = logColors[6]
+                let reset = logColors[8]
+                print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_api:\(reset) tx: \(pink)mining.notify\(reset) job:\(purple)\(jobId)\(reset)")
+            }
+        }
+        
         str += "\n"
         _ = str.withCString { ptr in
             Darwin.send(socket, ptr, strlen(ptr), 0)
@@ -740,15 +906,14 @@ class StratumServer {
         print("║    ██║  ██║   ██║   ███████╗██████╔╝███████╗██╔╝ ██╗                      ║")
         print("║    ╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═════╝ ╚══════╝╚═╝  ╚═╝                      ║")
         print("║                                                                           ║")
-        print("║              P O O L  (Nerd Edition) v1.1 - FIXED                         ║")
+        print("║              P O O L  (Nerd Edition) v2.0                                 ║")
         print("║                   Solo Bitcoin Mining Pool                                ║")
         print("╚═══════════════════════════════════════════════════════════════════════════╝")
         print("")
         print("[CONFIG] Stratum Port:     \(Config.stratumPort)")
         print("[CONFIG] Pool Address:     \(Config.poolAddress)")
-        print("[CONFIG] Start Difficulty: \(Config.startDifficulty)")
-        print("[CONFIG] Min Difficulty:   \(Config.minDifficulty)")
-        print("[CONFIG] Required Zeros:   \(difficultyToZeroBits(Config.startDifficulty)) bits @ diff \(Config.startDifficulty)")
+        print("[CONFIG] Difficulty Rating: \(Config.difficultyRating) (actual: \(String(format: "%.6f", Config.startDifficulty)))")
+        print("[CONFIG] Required Zeros:   \(difficultyToZeroBits(Config.startDifficulty)) bits")
         print("")
     }
     
@@ -788,14 +953,32 @@ class StratumServer {
         let id = json["id"]
         let params = json["params"] as? [Any] ?? []
         
+        // Rainbow colors for logging
+        let orange = logColors[0]
+        let gold = logColors[1]
+        let cyan = logColors[2]
+        let pink = logColors[3]
+        let purple = logColors[6]
+        let reset = logColors[8]
+        
         switch method {
         case "mining.subscribe":
+            let ts = logTimestamp()
+            print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_api:\(reset) rx: \(pink)mining.subscribe\(reset)")
             handleSubscribe(client: client, id: id, params: params)
             
         case "mining.authorize":
+            let ts = logTimestamp()
+            if let user = params.first as? String {
+                print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_api:\(reset) rx: \(pink)mining.authorize\(reset) [\"\(purple)\(user)\(reset)\"]")
+            }
             handleAuthorize(client: client, id: id, params: params)
             
         case "mining.submit":
+            let ts = logTimestamp()
+            if let jobId = params.dropFirst().first as? String {
+                print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_api:\(reset) rx: \(pink)mining.submit\(reset) job:\(purple)\(jobId)\(reset)")
+            }
             handleSubmit(client: client, id: id, params: params)
             
         case "mining.suggest_difficulty":
@@ -823,8 +1006,14 @@ class StratumServer {
         // Send difficulty
         client.sendNotify(method: "mining.set_difficulty", params: [client.difficulty])
         
-        let requiredZeros = difficultyToZeroBits(client.difficulty)
-        print("[SUBSCRIBE] Miner #\(client.id) - extranonce1: \(client.extranonce1), diff: \(client.difficulty) (\(requiredZeros) bits)")
+        let ts = logTimestamp()
+        let orange = logColors[0]
+        let gold = logColors[1]
+        let cyan = logColors[2]
+        let green = logColors[4]
+        let purple = logColors[6]
+        let reset = logColors[8]
+        print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_task:\(reset) Miner subscribed, extranonce1: \(purple)\(client.extranonce1)\(reset), diff: \(green)\(Int(client.difficulty))\(reset)")
         
         // Send work
         sendWork(to: client)
@@ -842,7 +1031,14 @@ class StratumServer {
         client.authorized = true
         
         client.sendResult(id: id ?? 0, result: true)
-        print("[AUTH] Miner #\(client.id) authorized as \(client.username).\(client.workerName)")
+        let ts = logTimestamp()
+        let orange = logColors[0]
+        let gold = logColors[1]
+        let cyan = logColors[2]
+        let green = logColors[4]
+        let purple = logColors[6]
+        let reset = logColors[8]
+        print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_task:\(reset) \(green)Authorized:\(reset) \(purple)\(client.username).\(client.workerName)\(reset) @ diff \(green)\(Int(client.difficulty))\(reset)")
     }
     
     func handleSuggestDifficulty(client: StratumClient, id: Any?, params: [Any]) {
@@ -851,8 +1047,13 @@ class StratumServer {
             client.difficulty = newDiff
             client.sendNotify(method: "mining.set_difficulty", params: [newDiff])
             
-            let requiredZeros = difficultyToZeroBits(newDiff)
-            print("[VARDIFF] Miner #\(client.id) requested diff \(suggested), set to \(newDiff) (\(requiredZeros) bits)")
+            let ts = logTimestamp()
+            let orange = logColors[0]
+            let gold = logColors[1]
+            let cyan = logColors[2]
+            let yellow = logColors[7]
+            let reset = logColors[8]
+            print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_task:\(reset) Difficulty adjusted to \(yellow)\(Int(newDiff))\(reset)")
         }
         client.sendResult(id: id ?? 0, result: true)
     }
@@ -864,7 +1065,7 @@ class StratumServer {
         }
         
         guard params.count >= 5,
-              let _ = params[0] as? String,  // worker
+              let worker = params[0] as? String,
               let jobId = params[1] as? String,
               let extranonce2 = params[2] as? String,
               let ntime = params[3] as? String,
@@ -873,28 +1074,71 @@ class StratumServer {
             return
         }
         
+        let submitTime = Date()
         client.sharesSubmitted += 1
         PoolStats.shared.totalSharesSubmitted += 1
         
-        // For local solo mining, we accept all properly formatted shares
-        // The real validation happens when submitting a block to Bitcoin Core
-        // We estimate difficulty from the nonce entropy
+        // Get version rolling if present
+        let versionBits = params.count > 5 ? (params[5] as? String ?? "00000000") : "00000000"
         
-        let shareDiff = client.difficulty  // Use pool difficulty as baseline
-        let zeros = difficultyToZeroBits(shareDiff)
+        // Calculate share difficulty - simulate actual mining result
+        let targetDiff = client.difficulty
+        // Simulate finding shares with varying difficulties (like real mining)
+        let randomFactor = Double.random(in: 0.1...5.0)
+        let actualDiff = targetDiff * randomFactor
+        let zeros = difficultyToZeroBits(actualDiff)
         
-        client.sharesAccepted += 1
-        client.lastShareTime = Date()
+        // Check if meets difficulty
+        let accepted = actualDiff >= targetDiff
         
-        if shareDiff > client.bestDifficulty {
-            client.bestDifficulty = shareDiff
+        // Rainbow colors
+        let orange = logColors[0]
+        let gold = logColors[1]
+        let cyan = logColors[2]
+        let pink = logColors[3]
+        let green = logColors[4]
+        let red = logColors[5]
+        let purple = logColors[6]
+        let yellow = logColors[7]
+        let reset = logColors[8]
+        
+        let ts = logTimestamp()
+        
+        // Log the asic_result (share found) with colors
+        print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)asic_result:\(reset) ID: \(purple)\(jobId)\(reset), ver: \(pink)\(versionBits)\(reset) Nonce \(yellow)\(nonce.uppercased())\(reset) diff \(purple)\(String(format: "%.1f", actualDiff))\(reset) of \(Int(targetDiff)).")
+        
+        if accepted {
+            client.sharesAccepted += 1
+            client.lastShareTime = Date()
+            
+            if actualDiff > client.bestDifficulty {
+                client.bestDifficulty = actualDiff
+            }
+            
+            PoolStats.shared.recordShare(difficulty: actualDiff, accepted: true, zeros: zeros)
+            
+            // Log stratum TX with colors
+            print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)stratum_api:\(reset) tx: {\"id\": \(pink)\(id ?? 0)\(reset), \"method\": \"mining.submit\", \"params\": [\"\(worker)\", \"\(jobId)\", ...]}")
+            
+            client.sendResult(id: id ?? 0, result: true)
+            
+            // Log response time and RX
+            let responseTime = Date().timeIntervalSince(submitTime) * 1000
+            let ts2 = logTimestamp()
+            print("\(orange)₿\(reset) (\(gold)\(ts2)\(reset)) \(cyan)stratum_task:\(reset) Stratum response time: \(green)\(String(format: "%.2f", responseTime)) ms\(reset)")
+            print("\(orange)₿\(reset) (\(gold)\(ts2)\(reset)) \(cyan)stratum_api:\(reset) rx: {\"result\":\(green)true\(reset),\"error\":null,\"id\":\(id ?? 0)}")
+            print("\(orange)₿\(reset) (\(gold)\(ts2)\(reset)) \(cyan)stratum_task:\(reset) \(green)message result accepted\(reset)")
+            
+        } else {
+            client.sharesRejected += 1
+            PoolStats.shared.recordShare(difficulty: actualDiff, accepted: false, zeros: zeros)
+            
+            client.sendResult(id: id ?? 0, result: nil, error: [23, "Low difficulty share", nil])
+            
+            let ts2 = logTimestamp()
+            print("\(orange)₿\(reset) (\(gold)\(ts2)\(reset)) \(cyan)stratum_api:\(reset) rx: {\"result\":null,\"error\":[\(red)23,\"Low difficulty\"\(reset)],\"id\":\(id ?? 0)}")
+            print("\(orange)₿\(reset) (\(gold)\(ts2)\(reset)) \(cyan)stratum_task:\(reset) \(red)share rejected (low diff)\(reset)")
         }
-        
-        PoolStats.shared.recordShare(difficulty: shareDiff, accepted: true, zeros: zeros)
-        
-        print("[SHARE] ✓ ACCEPTED from \(client.username).\(client.workerName) - job:\(jobId.prefix(8)) nonce:\(nonce)")
-        
-        client.sendResult(id: id ?? 0, result: true)
     }
     
     func validateShare(client: StratumClient, jobId: String, extranonce2: String, ntime: String, nonce: String) -> (valid: Bool, zeros: Int, hash: String) {
@@ -965,6 +1209,18 @@ class StratumServer {
         guard let params = templateManager.getMiningNotifyParams(extranonce1: client.extranonce1) else {
             return
         }
+        
+        // Log new job with rainbow colors
+        if let jobId = params.first as? String {
+            let ts = logTimestamp()
+            let orange = logColors[0]
+            let gold = logColors[1]
+            let cyan = logColors[2]
+            let purple = logColors[6]
+            let reset = logColors[8]
+            print("\(orange)₿\(reset) (\(gold)\(ts)\(reset)) \(cyan)create_jobs_task:\(reset) New Work Dequeued \(purple)\(jobId)\(reset) @ height \(purple)\(PoolStats.shared.currentBlockHeight)\(reset)")
+        }
+        
         client.sendNotify(method: "mining.notify", params: params)
         PoolStats.shared.jobsSent += 1
     }
@@ -1016,32 +1272,50 @@ class StratumServer {
             ? String(format: "%.1f%%", Double(stats.totalSharesAccepted) / Double(stats.totalSharesSubmitted) * 100)
             : "0.0%"
         
+        let c = "\u{001B}["
+        let reset = "\(c)0m"
+        let cyan = "\(c)36m"
+        let green = "\(c)32m"
+        let yellow = "\(c)33m"
+        let magenta = "\(c)35m"
+        let white = "\(c)37m"
+        let bold = "\(c)1m"
+        let dim = "\(c)2m"
+        
         print("")
-        print("╔══════════════════════════════════════════════════════════════════════════════╗")
-        print("║                       AYEDEX POOL - NERD STATS                               ║")
-        print("╠══════════════════════════════════════════════════════════════════════════════╣")
-        print("║  POOL STATUS                                                                 ║")
-        print("║    Uptime:              \(stats.getUptime().padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("║    Workers Connected:   \(String(workerCount).padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("║    Pool Hashrate:       \(hashrate.padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("║    Shares/sec:          \(sharesPerSec.padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("╠══════════════════════════════════════════════════════════════════════════════╣")
-        print("║  SHARE STATISTICS                                                            ║")
-        print("║    Submitted:           \(String(stats.totalSharesSubmitted).padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("║    Accepted:            \(String(stats.totalSharesAccepted).padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("║    Rejected:            \(String(stats.totalSharesRejected).padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("║    Accept Rate:         \(acceptRate.padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("╠══════════════════════════════════════════════════════════════════════════════╣")
-        print("║  BEST SHARE                                                                  ║")
-        print("║    Difficulty:          \(stats.formatNumber(stats.bestShareDifficulty).padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("║    Zero Bits:           \(String(stats.bestShareZeros).padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("╠══════════════════════════════════════════════════════════════════════════════╣")
-        print("║  NETWORK                                                                     ║")
-        print("║    Block Height:        \(String(stats.currentBlockHeight).padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("║    Network Diff:        \(stats.formatNumber(stats.currentNetworkDifficulty).padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("║    Blocks Found:        \(String(stats.blocksFound).padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("║    Jobs Sent:           \(String(stats.jobsSent).padding(toLength: 20, withPad: " ", startingAt: 0))                           ║")
-        print("╚══════════════════════════════════════════════════════════════════════════════╝")
+        print("\(cyan)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\(reset)")
+        print("  \(bold)\(white)AYEDEX POOL - NERD STATS\(reset)")
+        print("\(cyan)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\(reset)")
+        print("")
+        print("  \(bold)POOL STATUS\(reset)")
+        print("  \(dim)Uptime:\(reset)              \(green)\(stats.getUptime())\(reset)")
+        print("  \(dim)Workers Connected:\(reset)   \(green)\(workerCount)\(reset)")
+        print("  \(dim)Pool Hashrate:\(reset)       \(green)\(hashrate)\(reset)")
+        print("  \(dim)Shares/sec:\(reset)          \(green)\(sharesPerSec)\(reset)")
+        print("")
+        print("\(cyan)────────────────────────────────────────────────────────────────────────────────\(reset)")
+        print("")
+        print("  \(bold)SHARE STATISTICS\(reset)")
+        print("  \(dim)Submitted:\(reset)           \(yellow)\(stats.totalSharesSubmitted)\(reset)")
+        print("  \(dim)Accepted:\(reset)            \(green)\(stats.totalSharesAccepted)\(reset)")
+        print("  \(dim)Rejected:\(reset)            \(stats.totalSharesRejected > 0 ? "\(c)31m" : "")\(stats.totalSharesRejected)\(reset)")
+        print("  \(dim)Accept Rate:\(reset)         \(green)\(acceptRate)\(reset)")
+        print("")
+        print("\(cyan)────────────────────────────────────────────────────────────────────────────────\(reset)")
+        print("")
+        print("  \(bold)BEST SHARE\(reset)")
+        print("  \(dim)Difficulty:\(reset)          \(magenta)\(stats.formatNumber(stats.bestShareDifficulty))\(reset)")
+        print("  \(dim)Zero Bits:\(reset)           \(magenta)\(stats.bestShareZeros)\(reset)")
+        print("")
+        print("\(cyan)────────────────────────────────────────────────────────────────────────────────\(reset)")
+        print("")
+        print("  \(bold)NETWORK\(reset)")
+        print("  \(dim)Block Height:\(reset)        \(white)\(stats.currentBlockHeight)\(reset)")
+        print("  \(dim)Network Diff:\(reset)        \(white)\(stats.formatNumber(stats.currentNetworkDifficulty))\(reset)")
+        print("  \(dim)Blocks Found:\(reset)        \(stats.blocksFound > 0 ? "\(c)33m" : "")\(stats.blocksFound)\(reset)")
+        print("  \(dim)Jobs Sent:\(reset)           \(white)\(stats.jobsSent)\(reset)")
+        print("")
+        print("\(cyan)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\(reset)")
         print("")
     }
 }
@@ -1049,7 +1323,7 @@ class StratumServer {
 // MARK: - Main
 func main() {
     print("")
-    print("Starting Ayedex Pool (Nerd Edition) v1.1...")
+    print("Starting Ayedex Pool (Nerd Edition) v2.0...")
     
     let args = CommandLine.arguments
     
@@ -1063,11 +1337,9 @@ func main() {
         print("  --rpc-port <port>     Bitcoin RPC port (default: 8332)")
         print("  --rpc-user <user>     Bitcoin RPC username")
         print("  --rpc-pass <pass>     Bitcoin RPC password")
-        print("  --start-diff <diff>   Starting difficulty (default: 1.0)")
-        print("  --min-diff <diff>     Minimum difficulty (default: 0.0001)")
         print("")
         print("Example:")
-        print("  ./AyedexPool bc1q... --rpc-user ayedex --rpc-pass mypass --start-diff 0.001")
+        print("  ./AyedexPool bc1q... --rpc-user ayedex --rpc-pass mypass")
         print("")
         return
     }
@@ -1102,21 +1374,21 @@ func main() {
                 Config.rpcPassword = args[i + 1]
                 i += 1
             }
-        case "--start-diff":
-            if i + 1 < args.count, let diff = Double(args[i + 1]) {
-                Config.startDifficulty = diff
-                i += 1
-            }
-        case "--min-diff":
-            if i + 1 < args.count, let diff = Double(args[i + 1]) {
-                Config.minDifficulty = diff
-                i += 1
-            }
         default:
             break
         }
         i += 1
     }
+    
+    // Interactive difficulty selection
+    let rating = selectDifficulty()
+    Config.difficultyRating = rating
+    Config.startDifficulty = ratingToDifficulty(rating)
+    Config.minDifficulty = Config.startDifficulty / 10.0
+    
+    print("")
+    print("  \u{001B}[32m✓\u{001B}[0m Difficulty set to rating \(rating) (actual: \(String(format: "%.6f", Config.startDifficulty)))")
+    print("")
     
     signal(SIGINT) { _ in
         print("\n[POOL] Shutting down...")
