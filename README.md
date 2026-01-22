@@ -22,7 +22,7 @@ chmod +x BUILD.command
 
 # Or specify pool directly
 ./MacMetalCLI bc1qYourBitcoinAddress --ayedex           # Local Ayedex Pool
-./MacMetalCLI bc1qYourBitcoinAddress --pool public-pool.io:21496  # Public Pool
+./MacMetalCLI bc1qYourBitcoinAddress --pool europe.solomining.io:7777  # Public Pool
 ```
 
 ## Pool Compatibility
