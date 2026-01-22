@@ -1,13 +1,11 @@
 //
 //  SHA256.metal
-//  MacMetal Miner v1.0
+//  MacMetal Miner
 //
-//  Copyright (c) 2025 David Otero / Distributed Ledger Technologies
-//  www.distributedledgertechnologies.com
-//
-//  SOURCE-AVAILABLE - ALL RIGHTS RESERVED
 //  Bitcoin SHA256d compute shader for Apple Metal GPU
-//  See LICENSE file for terms. Unauthorized copying prohibited.
+//  Processes millions of nonces in parallel
+//
+//  MIT License - See LICENSE for details
 //
 
 #include <metal_stdlib>
@@ -155,16 +153,16 @@ struct MiningResult {
 /// @param hashCount     Atomic counter for total hashes computed
 /// @param resultCount   Atomic counter for results found
 /// @param results       Array to store found shares
-/// @param targetZeros   Minimum zero bits required for a share
+/// @param target        Full 256-bit target (8 x uint32, big-endian)
 /// @param gid           Thread ID (used to calculate nonce)
 ///
-kernel void mine(
+kernel void sha256_mine(
     device uchar* headerBase [[buffer(0)]],
     device uint* nonceStart [[buffer(1)]],
     device atomic_uint* hashCount [[buffer(2)]],
     device atomic_uint* resultCount [[buffer(3)]],
     device MiningResult* results [[buffer(4)]],
-    device uint* targetZeros [[buffer(5)]],
+    device uint* target [[buffer(5)]],
     uint gid [[thread_position_in_grid]]
 ) {
     // Build full 80-byte header with nonce
@@ -193,11 +191,8 @@ kernel void mine(
     // Increment hash counter
     atomic_fetch_add_explicit(hashCount, 1, memory_order_relaxed);
     
-    // Count leading zero bits
-    // Bitcoin hash is displayed reversed, so we check from hash2[7] down
+    // Count leading zero bits (for logging/display purposes)
     uint zeros = 0;
-    uint target = targetZeros[0];
-    
     uint val = swap32(hash2[7]);
     if (val == 0) {
         zeros = 32;
@@ -217,8 +212,30 @@ kernel void mine(
         zeros = clz(val);
     }
     
-    // If we found enough zeros, save the result
-    if (zeros >= target) {
+    // Proper 256-bit comparison: hash < target
+    // Bitcoin hash is displayed reversed, so hash2[7] is most significant
+    // Compare from most significant to least significant (big-endian comparison)
+    bool belowTarget = false;
+    bool decided = false;
+    
+    for (int i = 7; i >= 0 && !decided; i--) {
+        uint hashWord = swap32(hash2[i]);  // Convert to big-endian for comparison
+        uint targetWord = target[7 - i];    // Target is stored big-endian (index 0 = most significant)
+        
+        if (hashWord < targetWord) {
+            belowTarget = true;
+            decided = true;
+        } else if (hashWord > targetWord) {
+            belowTarget = false;
+            decided = true;
+        }
+        // If equal, continue to next word
+    }
+    
+    // If all words equal, hash == target, which is NOT below target
+    
+    // If hash < target, save the result
+    if (belowTarget) {
         uint idx = atomic_fetch_add_explicit(resultCount, 1, memory_order_relaxed);
         if (idx < 100) {  // Max 100 results per batch
             results[idx].nonce = nonce;

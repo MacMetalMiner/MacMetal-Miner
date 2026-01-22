@@ -1,250 +1,111 @@
-# MacMetal Miner
+# MacMetal CLI Miner v2.2
 
-Native Metal GPU Bitcoin Solo Miner for Apple Silicon Macs - 350+ MH/s
-
-![Version](https://img.shields.io/badge/version-2.1-green)
-![Platform](https://img.shields.io/badge/platform-macOS-blue)
-![Architecture](https://img.shields.io/badge/arch-Apple%20Silicon-orange)
-
-## Overview
-
-MacMetal Miner is a high-performance Bitcoin mining application that leverages Apple's Metal GPU framework to achieve maximum hashrate on Apple Silicon Macs. The CLI miner includes a built-in test suite that mathematically proves correct SHA256d computation using real Bitcoin block data.
+Native Metal GPU Bitcoin miner for Apple Silicon Macs - Command Line Edition.
 
 ## Features
 
-- **Metal GPU Acceleration** - Full Apple Silicon GPU utilization
-- **350+ MH/s** on M3 Pro (varies by chip)
-- **Verified Correct** - Built-in test mode proves SHA256d accuracy
-- **Solo Mining** - Mine directly to your wallet
-- **Stratum Protocol** - Compatible with any Stratum v1 pool
-- **Ayedex Pool** - Included solo mining pool server
-
-## Verified Working
-
-The miner includes a `--test` flag that proves correctness using Bitcoin Block #125552:
-
-```
-[TEST 2] GPU Mining - Find Known Nonce
-   → Nonce: 0x9546a142 (2504433986) - 67 bits
-   [PASS] ✓ GPU found correct nonce!
-   Verified hash: 00000000000000001e8d6829a8a21adc5d38d0a473b144b6765798e61f98bd1d
-
-   ╔═══════════════════════════════════════════════════════════════════╗
-   ║  ✅ ALL TESTS PASSED - GPU MINER VERIFIED WORKING                 ║
-   ╚═══════════════════════════════════════════════════════════════════╝
-```
+- 🖥️ **Native Metal GPU** - Custom compute shaders for Apple Silicon
+- 🌐 **Universal Pool Support** - Works with Ayedex Pool AND standard pools
+- 📊 **Live Leaderboard** - Your miner appears on [macmetalminer.com](https://macmetalminer.com)
+- 🔔 **Discord Notifications** - Block wins are announced automatically
+- ⚡ **500 MH/s to 3+ GH/s** - Scales with your Mac's GPU cores
 
 ## Quick Start
 
-### Build
-
 ```bash
-./build.sh
+# Build
+chmod +x BUILD.command
+./BUILD.command
+
+# Run with interactive pool selection
+./MacMetalCLI bc1qYourBitcoinAddress
+
+# Or specify pool directly
+./MacMetalCLI bc1qYourBitcoinAddress --ayedex           # Local Ayedex Pool
+./MacMetalCLI bc1qYourBitcoinAddress --pool public-pool.io:21496  # Public Pool
 ```
 
-Or manually:
+## Pool Compatibility
 
-```bash
-swiftc -O -o MacMetalCLI main.swift -framework Metal -framework CoreGraphics
+| Pool | Command | Fee | Notes |
+|------|---------|-----|-------|
+| **Ayedex Pool** | `--ayedex` | 0% | Your local pool instance |
+| **Public Pool** | `--pool public-pool.io:21496` | 0% | Open source community pool |
+| **Solo CKPool** | `--pool solo.ckpool.org:3333` | 2% | Most popular, by cgminer creator |
+
+## Command Line Options
+
+```
+USAGE:
+    MacMetalCLI <bitcoin_address> [options]
+
+OPTIONS:
+    --pool <host:port>   Connect directly to specified pool
+    --ayedex             Use Ayedex Pool (local, 127.0.0.1:3333)
+    --worker <name>      Set worker name (default: cli)
+    --debug              Enable debug logging
+    --test               Run GPU verification tests
+    --help               Show help message
 ```
 
-### Verify Installation
+## Leaderboard Integration
+
+Your miner automatically registers with macmetalminer.com:
+- Appears on the live leaderboard
+- Tracks your hashrate and uptime
+- Discord notifications for significant events
+
+Visit: https://macmetalminer.com/leaderboard.html
+
+## Technical Details
+
+### Byte Order Handling
+
+The miner handles two different stratum implementations:
+
+**Standard Pools (CKPool, Public Pool, etc.):**
+- Merkle branches sent in big-endian (display order)
+- Branches used directly in merkle calculation
+
+**Ayedex Pool:**
+- Merkle branches pre-reversed to little-endian
+- Miner reverses them back before calculation
+
+This is handled automatically based on pool selection.
+
+### Performance
+
+| Mac Model | Expected Hashrate |
+|-----------|-------------------|
+| MacBook Air M1 | ~400-500 MH/s |
+| MacBook Air M2 | ~500-600 MH/s |
+| MacBook Pro M3 Max | ~2.2 GH/s |
+| Mac Studio M2 Ultra | ~3-3.5 GH/s |
+
+## Verification
+
+Run the test suite to verify your GPU is working correctly:
 
 ```bash
 ./MacMetalCLI --test
 ```
 
-### Run (Connect to Pool)
-
-```bash
-./MacMetalCLI <bitcoin_address> --pool <host:port>
-```
-
-## Usage Examples
-
-```bash
-# Run verification tests
-./MacMetalCLI --test
-
-# Connect to public pool
-./MacMetalCLI bc1qYourAddress --pool public-pool.io:21496
-
-# Connect to local Ayedex Pool
-./MacMetalCLI bc1qYourAddress --pool 127.0.0.1:3333
-
-# With custom worker name
-./MacMetalCLI bc1qYourAddress --pool solo.ckpool.org:3333 --worker myrig
-```
-
-## Solo Mining with Ayedex Pool
-
-For true solo mining with zero fees, use the included Ayedex Pool server.
-
-### 1. Configure Bitcoin Core
-
-Add to `~/Library/Application Support/Bitcoin/bitcoin.conf`:
-
-```ini
-# RPC Settings
-rpcuser=ayedex
-rpcpassword=YourSecurePassword
-rpcallowip=127.0.0.1
-rpcbind=127.0.0.1
-server=1
-
-# Optional: Reduce memory usage
-dbcache=450
-maxmempool=300
-```
-
-Restart Bitcoin Core after changes.
-
-### 2. Build and Run the Pool
-
-```bash
-cd AyedexPool
-./build.sh
-./AyedexPool bc1qYourAddress \
-    --rpc-user ayedex \
-    --rpc-pass 'YourSecurePassword' \
-    --start-diff 0.001
-```
-
-### 3. Connect the Miner
-
-```bash
-./MacMetalCLI bc1qYourAddress --pool 127.0.0.1:3333
-```
-
-## Architecture
-
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                     MacMetal CLI Miner v2.1                              │
-│  ┌────────────────────────────────────────────────────────────────────┐  │
-│  │  Metal Compute Shader                                              │  │
-│  │  ├── SHA256d (double SHA256) implementation                        │  │
-│  │  ├── 16 million hashes per GPU batch                               │  │
-│  │  └── Parallel nonce testing across GPU cores                       │  │
-│  └────────────────────────────────────────────────────────────────────┘  │
-│  ┌────────────────────────────────────────────────────────────────────┐  │
-│  │  Stratum v1 Client                                                 │  │
-│  │  ├── mining.subscribe / mining.authorize                           │  │
-│  │  ├── mining.notify (job reception)                                 │  │
-│  │  └── mining.submit (share submission)                              │  │
-│  └────────────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼ Stratum Protocol (TCP)
-┌──────────────────────────────────────────────────────────────────────────┐
-│                  Ayedex Pool (Nerd Edition) v1.1                         │
-│  ┌────────────────────────────────────────────────────────────────────┐  │
-│  │  Stratum Server (:3333)                                            │  │
-│  │  ├── Variable difficulty (vardiff)                                 │  │
-│  │  ├── Multiple worker support                                       │  │
-│  │  └── Real-time statistics                                          │  │
-│  └────────────────────────────────────────────────────────────────────┘  │
-│  ┌────────────────────────────────────────────────────────────────────┐  │
-│  │  Bitcoin Core RPC Client                                           │  │
-│  │  ├── getblocktemplate (fetch new work)                             │  │
-│  │  └── submitblock (broadcast found blocks)                          │  │
-│  └────────────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼ JSON-RPC
-┌──────────────────────────────────────────────────────────────────────────┐
-│                         Bitcoin Core                                     │
-│                    └── Mainnet (fully synced)                            │
-└──────────────────────────────────────────────────────────────────────────┘
-```
-
-## Performance
-
-| Chip | Expected Hashrate |
-|------|-------------------|
-| M1 | ~200-250 MH/s |
-| M1 Pro | ~280-300 MH/s |
-| M1 Max | ~350-400 MH/s |
-| M2 | ~220-280 MH/s |
-| M2 Pro | ~300-330 MH/s |
-| M2 Max | ~380-420 MH/s |
-| M3 | ~250-300 MH/s |
-| M3 Pro | ~320-360 MH/s |
-| M3 Max | ~400-450 MH/s |
-
-*Actual performance varies based on thermal conditions and system load.*
-
-## Requirements
-
-- macOS 12.0+ (Monterey or later)
-- Apple Silicon Mac (M1/M2/M3 series)
-- Xcode Command Line Tools (`xcode-select --install`)
-- Bitcoin Core (for solo mining with Ayedex Pool)
-
-## Test Mode Details
-
-The `--test` flag runs three verification tests:
-
-### Test 1: CPU SHA256d Verification
-Computes the hash of Bitcoin Block #125552 using CPU and verifies against the known hash.
-
-### Test 2: GPU Mining Verification
-Uses the GPU to search for the winning nonce of Block #125552. Finding the exact nonce proves the GPU SHA256d implementation is mathematically correct.
-
-### Test 3: Hashrate Benchmark
-Runs three batches of 16 million hashes each to measure GPU performance.
-
-## File Structure
-
-```
-MacMetal-Miner/
-├── main.swift              # CLI Miner source code
-├── build.sh                # Build script
-├── README.md               # This file
-├── technical.md            # Technical documentation
-├── LICENSE                 # Source Available License
-└── AyedexPool/
-    ├── AyedexPool.swift    # Pool server source code
-    ├── build.sh            # Pool build script
-    └── README.md           # Pool documentation
-```
-
-## Troubleshooting
-
-### "No Metal device found"
-Your Mac doesn't have a compatible GPU. Apple Silicon is required.
-
-### "Connect failed"
-- Ensure the pool is running and accessible
-- Check firewall settings
-- Verify the host:port is correct
-
-### Low hashrate
-- Close other GPU-intensive applications
-- Ensure Mac is plugged in (not on battery)
-- Check Activity Monitor for thermal throttling
-
-### Shares rejected
-- Verify your Bitcoin address is correct
-- Check pool difficulty settings
-- Ensure system clock is synchronized
+This tests:
+1. CPU SHA256d correctness
+2. GPU nonce finding (Bitcoin Block #125552)
+3. GPU hashrate benchmark
 
 ## License
 
-Source Available License - (c) 2025 David Otero / Distributed Ledger Technologies
+Source Available License - See LICENSE for terms.
+Commercial licensing: david@knexmail.com
 
-This software is provided for inspection and personal use only. See [LICENSE](LICENSE) for full terms.
+## Support
 
-**Commercial use:** [Purchase GUI version](https://winnertakeall.gumroad.com/l/bitcoin)
+- GitHub Issues: https://github.com/MacMetalMiner/MacMetal-Miner/issues
+- Discord: https://discord.gg/86dnKhpV7P
+- Website: https://macmetalminer.com
 
-**Contact:** david@knexmail.com
+---
 
-## Disclaimer
-
-Solo Bitcoin mining with consumer hardware is extremely unlikely to find a block due to the enormous network difficulty. At current difficulty (~148T), a single Mac mining at 350 MH/s has approximately a 1 in 13 trillion chance of finding a block per day. This software is provided for educational, entertainment, and lottery-like purposes. Mine responsibly.
-
-## Links
-
-- Website: [www.distributedledgertechnologies.com](https://www.distributedledgertechnologies.com)
-- GUI Version: [Purchase on Gumroad](https://winnertakeall.gumroad.com/l/bitcoin)
-- Support: david@knexmail.com
+Created by **David Otero** at [Distributed Ledger Technologies](https://www.distributedledgertechnologies.com)
