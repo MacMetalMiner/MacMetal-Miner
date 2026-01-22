@@ -41,7 +41,7 @@ chmod +x build.sh
 Or manually:
 
 ```bash
-swiftc -O -o AyedexPool AyedexPool_v2.0.swift
+swiftc -O -o AyedexPool AyedexPool.swift
 ```
 
 ## Usage
