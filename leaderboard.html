@@ -313,7 +313,31 @@
             white-space: nowrap;
             max-width: 100px;
         }
-        
+
+        /* VIA Badge */
+        .via-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .via-badge.terminal {
+            background: rgba(0,212,255,0.15);
+            color: var(--neon-blue);
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+
+        .via-badge.gui {
+            background: rgba(247,147,26,0.15);
+            color: var(--neon-orange);
+            border: 1px solid rgba(247,147,26,0.3);
+        }
+
         .miner-machine {
             color: var(--text-secondary);
             font-size: 0.75rem;
@@ -851,6 +875,7 @@
                                     <div class="miner-top-row">
                                         <span class="online-dot"></span>
                                         <span class="miner-address">${m.address_short}</span>
+                                        ${m.via ? `<span class="via-badge ${m.via === 'TERMINAL' ? 'terminal' : 'gui'}" style="margin-left:4px;font-size:0.55rem;padding:2px 5px;">${m.via === 'TERMINAL' ? '&gt;_' : '&#9633;'}</span>` : ''}
                                     </div>
                                     <div class="miner-machine">${m.machine}</div>
                                 </div>
@@ -956,13 +981,21 @@
                 if (!data.registry || data.registry.length === 0) {
                     list.innerHTML = '<div class="no-data"><p>No miners registered yet.</p></div>';
                 } else {
-                    list.innerHTML = data.registry.map(m => `
+                    list.innerHTML = data.registry.map(m => {
+                        const via = m.current_via || m.via || 'Mac GUI';
+                        const isTerminal = via === 'TERMINAL';
+                        return `
                         <div class="registry-card">
                             <div class="registry-top">
                                 <div class="registry-id">Miner #${m.miner_number}</div>
-                                <div class="status-badge ${m.is_online ? 'online' : 'offline'}">
-                                    <span class="status-dot"></span>
-                                    ${m.is_online ? 'Online' : 'Offline'}
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <span class="via-badge ${isTerminal ? 'terminal' : 'gui'}">
+                                        ${isTerminal ? '&gt;_' : '&#9633;'} ${via}
+                                    </span>
+                                    <div class="status-badge ${m.is_online ? 'online' : 'offline'}">
+                                        <span class="status-dot"></span>
+                                        ${m.is_online ? 'Online' : 'Offline'}
+                                    </div>
                                 </div>
                             </div>
                             <div class="registry-grid">
@@ -988,7 +1021,7 @@
                                 </div>
                             </div>
                         </div>
-                    `).join('');
+                    `}).join('');
                 }
             } catch (e) { console.error(e); }
         }

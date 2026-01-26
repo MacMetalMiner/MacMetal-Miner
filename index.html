@@ -1883,6 +1883,7 @@
                 <div class="leaderboard-header">
                     <span class="lb-rank">Rank</span>
                     <span class="lb-miner">Miner</span>
+                    <span class="lb-via">Via</span>
                     <span class="lb-machine">Machine</span>
                     <span class="lb-hashrate">Hashrate</span>
                     <span class="lb-uptime">Uptime</span>
@@ -2012,7 +2013,7 @@
     
     .leaderboard-header {
         display: grid;
-        grid-template-columns: 80px 1fr 1fr 120px 100px;
+        grid-template-columns: 80px 1fr 80px 1fr 120px 100px;
         padding: 16px 24px;
         background: rgba(247, 147, 26, 0.1);
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -2022,14 +2023,41 @@
         text-transform: uppercase;
         letter-spacing: 1px;
     }
-    
+
     .leaderboard-row {
         display: grid;
-        grid-template-columns: 80px 1fr 1fr 120px 100px;
+        grid-template-columns: 80px 1fr 80px 1fr 120px 100px;
         padding: 16px 24px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.04);
         align-items: center;
         transition: background 0.2s;
+    }
+
+    .lb-via {
+        text-align: center;
+    }
+
+    .via-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .via-badge.terminal {
+        background: rgba(0,212,255,0.15);
+        color: #00d4ff;
+        border: 1px solid rgba(0,212,255,0.3);
+    }
+
+    .via-badge.gui {
+        background: rgba(247,147,26,0.15);
+        color: #f7931a;
+        border: 1px solid rgba(247,147,26,0.3);
     }
     
     .leaderboard-row:hover {
@@ -2270,9 +2298,9 @@
         
         .leaderboard-header,
         .leaderboard-row {
-            grid-template-columns: 60px 1fr 100px;
+            grid-template-columns: 60px 1fr 60px 100px;
         }
-        
+
         .lb-machine,
         .lb-uptime {
             display: none;
@@ -2341,9 +2369,12 @@
                 tbody.innerHTML = data.leaderboard.map((miner, i) => {
                     const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
                     const rankText = i === 0 ? goldMedal : i === 1 ? silverMedal : i === 2 ? bronzeMedal : '#' + (i + 1);
+                    const via = miner.via || 'Mac GUI';
+                    const viaBadge = '<span class="via-badge ' + (via === 'TERMINAL' ? 'terminal' : 'gui') + '">' + (via === 'TERMINAL' ? '>_' : '&#9633;') + '</span>';
                     return '<div class="leaderboard-row">' +
                         '<span class="lb-rank ' + rankClass + '">' + rankText + '</span>' +
                         '<span class="lb-miner"><span class="online-dot"></span><span class="miner-address">' + miner.address_short + '</span></span>' +
+                        '<span class="lb-via">' + viaBadge + '</span>' +
                         '<span class="lb-machine">' + (miner.machine || 'Mac') + '</span>' +
                         '<span class="lb-hashrate">' + formatHashrate(miner.hashrate) + '</span>' +
                         '<span class="lb-uptime">' + formatUptime(miner.uptime) + '</span>' +
