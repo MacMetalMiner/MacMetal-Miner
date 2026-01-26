@@ -2370,7 +2370,8 @@
                     const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
                     const rankText = i === 0 ? goldMedal : i === 1 ? silverMedal : i === 2 ? bronzeMedal : '#' + (i + 1);
                     const via = miner.via || 'Mac GUI';
-                    const viaBadge = '<span class="via-badge ' + (via === 'TERMINAL' ? 'terminal' : 'gui') + '">' + (via === 'TERMINAL' ? '>_' : '&#9633;') + '</span>';
+                    const isTerminal = via === 'TERMINAL';
+                    const viaBadge = '<span class="via-badge ' + (isTerminal ? 'terminal' : 'gui') + '">' + (isTerminal ? 'CLI' : 'GUI') + '</span>';
                     return '<div class="leaderboard-row">' +
                         '<span class="lb-rank ' + rankClass + '">' + rankText + '</span>' +
                         '<span class="lb-miner"><span class="online-dot"></span><span class="miner-address">' + miner.address_short + '</span></span>' +
