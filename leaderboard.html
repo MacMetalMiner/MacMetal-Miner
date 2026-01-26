@@ -875,7 +875,7 @@
                                     <div class="miner-top-row">
                                         <span class="online-dot"></span>
                                         <span class="miner-address">${m.address_short}</span>
-                                        <span class="via-badge ${(m.via === 'TERMINAL') ? 'terminal' : 'gui'}" style="margin-left:4px;font-size:0.55rem;padding:2px 5px;">${(m.via === 'TERMINAL') ? 'CLI' : 'GUI'}</span>
+                                        <span class="via-badge ${(m.via === 'CLI') ? 'terminal' : 'gui'}" style="margin-left:4px;font-size:0.55rem;padding:2px 5px;">${(m.via === 'CLI') ? 'CLI' : 'GUI'}</span>
                                     </div>
                                     <div class="miner-machine">${m.machine}</div>
                                 </div>
@@ -982,15 +982,15 @@
                     list.innerHTML = '<div class="no-data"><p>No miners registered yet.</p></div>';
                 } else {
                     list.innerHTML = data.registry.map(m => {
-                        const via = m.current_via || m.via || 'Mac GUI';
-                        const isTerminal = via === 'TERMINAL';
+                        const via = m.current_via || m.via || 'GUI';
+                        const isCLI = via === 'CLI';
                         return `
                         <div class="registry-card">
                             <div class="registry-top">
                                 <div class="registry-id">Miner #${m.miner_number}</div>
                                 <div style="display:flex;align-items:center;gap:8px;">
-                                    <span class="via-badge ${isTerminal ? 'terminal' : 'gui'}">
-                                        ${isTerminal ? 'CLI' : 'GUI'}
+                                    <span class="via-badge ${isCLI ? 'terminal' : 'gui'}">
+                                        ${isCLI ? 'CLI' : 'GUI'}
                                     </span>
                                     <div class="status-badge ${m.is_online ? 'online' : 'offline'}">
                                         <span class="status-dot"></span>

@@ -2369,9 +2369,9 @@
                 tbody.innerHTML = data.leaderboard.map((miner, i) => {
                     const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
                     const rankText = i === 0 ? goldMedal : i === 1 ? silverMedal : i === 2 ? bronzeMedal : '#' + (i + 1);
-                    const via = miner.via || 'Mac GUI';
-                    const isTerminal = via === 'TERMINAL';
-                    const viaBadge = '<span class="via-badge ' + (isTerminal ? 'terminal' : 'gui') + '">' + (isTerminal ? 'CLI' : 'GUI') + '</span>';
+                    const via = miner.via || 'GUI';
+                    const isCLI = via === 'CLI';
+                    const viaBadge = '<span class="via-badge ' + (isCLI ? 'terminal' : 'gui') + '">' + (isCLI ? 'CLI' : 'GUI') + '</span>';
                     return '<div class="leaderboard-row">' +
                         '<span class="lb-rank ' + rankClass + '">' + rankText + '</span>' +
                         '<span class="lb-miner"><span class="online-dot"></span><span class="miner-address">' + miner.address_short + '</span></span>' +
@@ -2454,22 +2454,46 @@
                         <tr>
                             <td>MacBook Air M1</td>
                             <td>7-8</td>
-                            <td>~400-500 MH/s</td>
+                            <td>~135-155 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Air M2</td>
                             <td>8-10</td>
-                            <td>~500-600 MH/s</td>
+                            <td>~155-195 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
-                            <td>MacBook Air M3</td>
-                            <td>8-10</td>
-                            <td>~600-700 MH/s</td>
+                            <td>MacBook Air 15" M2</td>
+                            <td>10</td>
+                            <td>~195 MH/s</td>
                             <td></td>
                         </tr>
-                        
+                        <tr>
+                            <td>MacBook Air 13" M3</td>
+                            <td>8-10</td>
+                            <td>~155-195 MH/s</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>MacBook Air 15" M3</td>
+                            <td>10</td>
+                            <td>~195 MH/s</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>MacBook Air 13" M4</td>
+                            <td>10</td>
+                            <td>~195 MH/s</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>MacBook Air 15" M4</td>
+                            <td>10</td>
+                            <td>~195 MH/s</td>
+                            <td></td>
+                        </tr>
+
                         <!-- MacBook Pro -->
                         <tr class="mac-category">
                             <td colspan="4">MacBook Pro</td>
@@ -2477,124 +2501,124 @@
                         <tr>
                             <td>MacBook Pro 13" M1</td>
                             <td>8</td>
-                            <td>~500 MH/s</td>
+                            <td>~155 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 13" M2</td>
                             <td>10</td>
-                            <td>~600 MH/s</td>
+                            <td>~195 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 14" M1 Pro</td>
                             <td>14-16</td>
-                            <td>~800 MH/s</td>
+                            <td>~270-310 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 16" M1 Pro</td>
                             <td>16</td>
-                            <td>~850 MH/s</td>
+                            <td>~310 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 14" M1 Max</td>
                             <td>24-32</td>
-                            <td>~1.2-1.5 GH/s</td>
+                            <td>~465-620 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 16" M1 Max</td>
                             <td>32</td>
-                            <td>~1.5 GH/s</td>
+                            <td>~620 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 14" M2 Pro</td>
                             <td>16-19</td>
-                            <td>~900 MH/s - 1 GH/s</td>
+                            <td>~310-370 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 16" M2 Pro</td>
                             <td>19</td>
-                            <td>~1 GH/s</td>
+                            <td>~370 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 14" M2 Max</td>
                             <td>30-38</td>
-                            <td>~1.5-1.8 GH/s</td>
+                            <td>~580-740 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 16" M2 Max</td>
                             <td>38</td>
-                            <td>~1.8 GH/s</td>
+                            <td>~740 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 14" M3</td>
                             <td>10</td>
-                            <td>~700 MH/s</td>
+                            <td>~195 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 14" M3 Pro</td>
                             <td>14-18</td>
-                            <td>~900 MH/s - 1.1 GH/s</td>
+                            <td>~270-350 MH/s</td>
                             <td></td>
                         </tr>
                         <tr class="highlight">
                             <td>MacBook Pro 16" M3 Pro</td>
                             <td>18</td>
-                            <td>~1.1 GH/s</td>
+                            <td>~350 MH/s</td>
                             <td class="checkmark">✓ Verified</td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 14" M3 Max</td>
                             <td>30-40</td>
-                            <td>~1.8-2.2 GH/s</td>
+                            <td>~580-775 MH/s</td>
                             <td></td>
                         </tr>
-                        <tr class="highlight">
+                        <tr>
                             <td>MacBook Pro 16" M3 Max</td>
                             <td>40</td>
-                            <td>~2.2 GH/s</td>
-                            <td class="checkmark">✓ Verified</td>
+                            <td>~775 MH/s</td>
+                            <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 14" M4</td>
                             <td>10</td>
-                            <td>~750 MH/s</td>
+                            <td>~195 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 14" M4 Pro</td>
                             <td>20</td>
-                            <td>~1.2 GH/s</td>
+                            <td>~390 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 16" M4 Pro</td>
                             <td>20</td>
-                            <td>~1.3 GH/s</td>
+                            <td>~390 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>MacBook Pro 14" M4 Max</td>
                             <td>40</td>
-                            <td>~2.4 GH/s</td>
+                            <td>~775 MH/s</td>
                             <td></td>
                         </tr>
-                        <tr class="highlight">
+                        <tr>
                             <td>MacBook Pro 16" M4 Max</td>
                             <td>40</td>
-                            <td>~2.5 GH/s</td>
-                            <td class="checkmark">✓ Verified</td>
+                            <td>~775 MH/s</td>
+                            <td></td>
                         </tr>
-                        
+
                         <!-- Mac mini -->
                         <tr class="mac-category">
                             <td colspan="4">Mac mini</td>
@@ -2602,34 +2626,34 @@
                         <tr>
                             <td>Mac mini M1</td>
                             <td>8</td>
-                            <td>~500 MH/s</td>
+                            <td>~155 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>Mac mini M2</td>
                             <td>10</td>
-                            <td>~600 MH/s</td>
+                            <td>~195 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>Mac mini M2 Pro</td>
                             <td>19</td>
-                            <td>~1 GH/s</td>
+                            <td>~370 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>Mac mini M4</td>
                             <td>10</td>
-                            <td>~750 MH/s</td>
+                            <td>~195 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>Mac mini M4 Pro</td>
                             <td>20</td>
-                            <td>~1.3 GH/s</td>
+                            <td>~390 MH/s</td>
                             <td></td>
                         </tr>
-                        
+
                         <!-- iMac -->
                         <tr class="mac-category">
                             <td colspan="4">iMac</td>
@@ -2637,22 +2661,22 @@
                         <tr>
                             <td>iMac 24" M1</td>
                             <td>7-8</td>
-                            <td>~400-500 MH/s</td>
+                            <td>~135-155 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>iMac 24" M3</td>
                             <td>8-10</td>
-                            <td>~600-700 MH/s</td>
+                            <td>~155-195 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>iMac 24" M4</td>
                             <td>10</td>
-                            <td>~750 MH/s</td>
+                            <td>~195 MH/s</td>
                             <td></td>
                         </tr>
-                        
+
                         <!-- Mac Studio -->
                         <tr class="mac-category">
                             <td colspan="4">Mac Studio</td>
@@ -2660,28 +2684,34 @@
                         <tr>
                             <td>Mac Studio M1 Max</td>
                             <td>24-32</td>
-                            <td>~1.2-1.5 GH/s</td>
+                            <td>~465-620 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>Mac Studio M1 Ultra</td>
                             <td>48-64</td>
-                            <td>~2.5-3 GH/s</td>
+                            <td>~930 MH/s - 1.24 GH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>Mac Studio M2 Max</td>
                             <td>30-38</td>
-                            <td>~1.5-1.8 GH/s</td>
+                            <td>~580-740 MH/s</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td>Mac Studio M2 Ultra</td>
                             <td>60-76</td>
-                            <td>~3-3.5 GH/s</td>
+                            <td>~1.16-1.47 GH/s</td>
                             <td></td>
                         </tr>
-                        
+                        <tr>
+                            <td>Mac Studio M4 Max</td>
+                            <td>40</td>
+                            <td>~775 MH/s</td>
+                            <td></td>
+                        </tr>
+
                         <!-- Mac Pro -->
                         <tr class="mac-category">
                             <td colspan="4">Mac Pro</td>
@@ -2689,7 +2719,7 @@
                         <tr>
                             <td>Mac Pro M2 Ultra</td>
                             <td>60-76</td>
-                            <td>~3-3.5 GH/s</td>
+                            <td>~1.16-1.47 GH/s</td>
                             <td></td>
                         </tr>
                     </tbody>
