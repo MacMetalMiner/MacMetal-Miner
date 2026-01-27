@@ -137,6 +137,11 @@ struct MiningResult {
     uint hash4; uint hash5; uint hash6; uint hash7;
 };
 
+struct BestShare {
+    atomic_uint zeros;
+    atomic_uint nonce;
+};
+
 kernel void sha256_mine(
     device uchar* headerBase [[buffer(0)]],
     device uint* nonceStart [[buffer(1)]],
@@ -144,6 +149,7 @@ kernel void sha256_mine(
     device atomic_uint* resultCount [[buffer(3)]],
     device MiningResult* results [[buffer(4)]],
     device uint* targetZeros [[buffer(5)]],
+    device BestShare* bestShare [[buffer(6)]],
     uint gid [[thread_position_in_grid]]
 ) {
     uchar header[80];
@@ -163,6 +169,18 @@ kernel void sha256_mine(
         if (val == 0) { zeros = 64; val = swap32(hash2[5]); if (val == 0) { zeros = 96; } else { zeros += clz(val); } }
         else { zeros += clz(val); }
     } else { zeros = clz(val); }
+
+    // Track best share found in this batch (regardless of difficulty)
+    uint currentBest = atomic_load_explicit(&bestShare->zeros, memory_order_relaxed);
+    while (zeros > currentBest) {
+        if (atomic_compare_exchange_weak_explicit(&bestShare->zeros, &currentBest, zeros,
+                                                   memory_order_relaxed, memory_order_relaxed)) {
+            atomic_store_explicit(&bestShare->nonce, nonce, memory_order_relaxed);
+            break;
+        }
+    }
+
+    // Only add to results array if meets pool difficulty
     if (zeros >= targetZeros[0]) {
         uint idx = atomic_fetch_add_explicit(resultCount, 1, memory_order_relaxed);
         if (idx < 100) {
@@ -450,13 +468,20 @@ extension Int {
 }
 
 // MARK: - GPU Miner
+struct MineResult {
+    let hashes: UInt64
+    let shares: [(nonce: UInt32, zeros: UInt32)]  // Shares meeting difficulty
+    let bestZeros: UInt32  // Best zeros found in batch (regardless of difficulty)
+    let bestNonce: UInt32
+}
+
 class GPUMiner {
     let device: MTLDevice
     let commandQueue: MTLCommandQueue
     let pipeline: MTLComputePipelineState
     let batchSize = 1024 * 1024 * 16  // 16M hashes per batch
-    var headerBuffer, nonceBuffer, hashCountBuffer, resultCountBuffer, resultsBuffer, targetBuffer: MTLBuffer?
-    
+    var headerBuffer, nonceBuffer, hashCountBuffer, resultCountBuffer, resultsBuffer, targetBuffer, bestShareBuffer: MTLBuffer?
+
     init?() {
         guard let dev = MTLCreateSystemDefaultDevice() else { return nil }
         device = dev
@@ -473,34 +498,46 @@ class GPUMiner {
         resultCountBuffer = dev.makeBuffer(length: 4, options: .storageModeShared)
         resultsBuffer = dev.makeBuffer(length: 100 * 40, options: .storageModeShared)
         targetBuffer = dev.makeBuffer(length: 4, options: .storageModeShared)
+        bestShareBuffer = dev.makeBuffer(length: 8, options: .storageModeShared)  // zeros (4) + nonce (4)
     }
-    
-    func mine(header: [UInt8], nonceStart: UInt32, targetZeros: UInt32) -> (UInt64, [(UInt32, UInt32)]) {
+
+    func mine(header: [UInt8], nonceStart: UInt32, targetZeros: UInt32) -> MineResult {
         guard let hb = headerBuffer, let nb = nonceBuffer, let hcb = hashCountBuffer,
-              let rcb = resultCountBuffer, let rb = resultsBuffer, let tb = targetBuffer else { return (0, []) }
-        
+              let rcb = resultCountBuffer, let rb = resultsBuffer, let tb = targetBuffer,
+              let bsb = bestShareBuffer else { return MineResult(hashes: 0, shares: [], bestZeros: 0, bestNonce: 0) }
+
         memcpy(hb.contents(), header, min(header.count, 76))
         var ns = nonceStart; memcpy(nb.contents(), &ns, 4)
         var t = targetZeros; memcpy(tb.contents(), &t, 4)
         memset(hcb.contents(), 0, 8); memset(rcb.contents(), 0, 4)
-        
-        guard let cb = commandQueue.makeCommandBuffer(), let enc = cb.makeComputeCommandEncoder() else { return (0, []) }
+        memset(bsb.contents(), 0, 8)  // Reset best share buffer
+
+        guard let cb = commandQueue.makeCommandBuffer(), let enc = cb.makeComputeCommandEncoder() else {
+            return MineResult(hashes: 0, shares: [], bestZeros: 0, bestNonce: 0)
+        }
         enc.setComputePipelineState(pipeline)
         enc.setBuffer(hb, offset: 0, index: 0); enc.setBuffer(nb, offset: 0, index: 1)
         enc.setBuffer(hcb, offset: 0, index: 2); enc.setBuffer(rcb, offset: 0, index: 3)
         enc.setBuffer(rb, offset: 0, index: 4); enc.setBuffer(tb, offset: 0, index: 5)
-        
+        enc.setBuffer(bsb, offset: 0, index: 6)
+
         let tgSize = pipeline.maxTotalThreadsPerThreadgroup
         enc.dispatchThreadgroups(MTLSize(width: (batchSize + tgSize - 1) / tgSize, height: 1, depth: 1),
                                 threadsPerThreadgroup: MTLSize(width: tgSize, height: 1, depth: 1))
         enc.endEncoding(); cb.commit(); cb.waitUntilCompleted()
-        
+
         let hashes = hcb.contents().load(as: UInt64.self)
         let count = min(rcb.contents().load(as: UInt32.self), 100)
-        var results: [(UInt32, UInt32)] = []
+        var shares: [(UInt32, UInt32)] = []
         let ptr = rb.contents().assumingMemoryBound(to: UInt32.self)
-        for i in 0..<Int(count) { results.append((ptr[i * 10], ptr[i * 10 + 1])) }
-        return (hashes, results)
+        for i in 0..<Int(count) { shares.append((ptr[i * 10], ptr[i * 10 + 1])) }
+
+        // Read best share from buffer
+        let bestPtr = bsb.contents().assumingMemoryBound(to: UInt32.self)
+        let bestZeros = bestPtr[0]
+        let bestNonce = bestPtr[1]
+
+        return MineResult(hashes: hashes, shares: shares, bestZeros: bestZeros, bestNonce: bestNonce)
     }
 }
 
@@ -1001,26 +1038,27 @@ func runTestMode() {
     
     let searchStart = winningNonce - 1000
     let startTime = Date()
-    let (hashes, results) = testGPU.mine(header: header76, nonceStart: searchStart, targetZeros: 32)
+    let mineResult = testGPU.mine(header: header76, nonceStart: searchStart, targetZeros: 32)
     let elapsed = Date().timeIntervalSince(startTime)
-    
-    print("   Hashes: \(hashes) in \(String(format: "%.3f", elapsed))s")
-    print("   Hashrate: \(String(format: "%.2f", Double(hashes) / elapsed / 1_000_000)) MH/s")
-    
+
+    print("   Hashes: \(mineResult.hashes) in \(String(format: "%.3f", elapsed))s")
+    print("   Hashrate: \(String(format: "%.2f", Double(mineResult.hashes) / elapsed / 1_000_000)) MH/s")
+    print("   Best share: \(mineResult.bestZeros) bits")
+
     var foundCorrect = false
-    for r in results {
-        if r.0 == winningNonce {
+    for r in mineResult.shares {
+        if r.nonce == winningNonce {
             print("   \(c.green)[PASS] ✓ GPU found correct nonce!\(c.reset)")
             foundCorrect = true
             passed += 1
             break
         }
     }
-    if !foundCorrect && results.isEmpty {
+    if !foundCorrect && mineResult.shares.isEmpty {
         print("   \(c.red)[FAIL] ✗ Nonce not found\(c.reset)")
         failed += 1
     } else if !foundCorrect {
-        print("   \(c.yellow)[WARN] Found \(results.count) nonces but not exact match\(c.reset)")
+        print("   \(c.yellow)[WARN] Found \(mineResult.shares.count) nonces but not exact match\(c.reset)")
         passed += 1
     }
     print("")
@@ -1037,11 +1075,11 @@ func runTestMode() {
     
     for batch in 1...3 {
         let batchStart = Date()
-        let (h, _) = testGPU.mine(header: benchHeader, nonceStart: UInt32.random(in: 0...UInt32.max), targetZeros: 99)
+        let benchResult = testGPU.mine(header: benchHeader, nonceStart: UInt32.random(in: 0...UInt32.max), targetZeros: 99)
         let batchTime = Date().timeIntervalSince(batchStart)
-        totalHashes += h
+        totalHashes += benchResult.hashes
         totalTime += batchTime
-        print("   Batch \(batch): \(String(format: "%.2f", Double(h) / batchTime / 1_000_000)) MH/s")
+        print("   Batch \(batch): \(String(format: "%.2f", Double(benchResult.hashes) / batchTime / 1_000_000)) MH/s")
     }
     
     let avgHashrate = Double(totalHashes) / totalTime / 1_000_000
@@ -1154,11 +1192,17 @@ func startMining() {
         )
         
         // Mine batch
-        let (hashes, results) = gpu.mine(header: header, nonceStart: nonce, targetZeros: UInt32(max(stats.requiredZeros, 1)))
-        
-        hashesThisSecond += hashes
-        stats.totalHashes += hashes
-        
+        let result = gpu.mine(header: header, nonceStart: nonce, targetZeros: UInt32(max(stats.requiredZeros, 1)))
+
+        hashesThisSecond += result.hashes
+        stats.totalHashes += result.hashes
+
+        // Track best share found (regardless of difficulty)
+        if result.bestZeros > 0 && Int(result.bestZeros) > stats.bestZeros {
+            stats.bestZeros = Int(result.bestZeros)
+            dlog("New best share: \(result.bestZeros) bits (nonce: 0x\(String(format: "%08x", result.bestNonce)))")
+        }
+
         // Update hashrate every second
         let now = Date()
         if now.timeIntervalSince(lastHashUpdate) >= 1.0 {
@@ -1167,24 +1211,28 @@ func startMining() {
             hashesThisSecond = 0
             lastHashUpdate = now
         }
-        
-        // Process found shares
-        for r in results {
-            let foundNonce = r.0
-            let zeros = Int(r.1)
-            
+
+        // Process shares that meet pool difficulty (submit them)
+        for r in result.shares {
+            let foundNonce = r.nonce
+            let zeros = Int(r.zeros)
+
             stats.sharesFound += 1
-            if zeros > stats.bestZeros {
-                stats.bestZeros = zeros
-            }
-            
-            // Submit share - freelancer's fix: nonce as-is, no byte swap
-            let nonceHex = String(format: "%08x", foundNonce)
+
+            // Submit share - stratum expects nonce as little-endian hex
+            // foundNonce is a UInt32, we need to represent it as LE bytes in hex
+            // e.g., nonce 0x12345678 -> "78563412"
+            let nonceHex = String(format: "%02x%02x%02x%02x",
+                                  foundNonce & 0xFF,
+                                  (foundNonce >> 8) & 0xFF,
+                                  (foundNonce >> 16) & 0xFF,
+                                  (foundNonce >> 24) & 0xFF)
             stratum.submitShare(jobId: stratum.job.id, extranonce2: en2, ntime: stratum.job.ntime, nonce: nonceHex)
-            
+            dlog("Submitted share: nonce=0x\(String(format: "%08x", foundNonce)) -> LE hex=\(nonceHex), zeros=\(zeros), difficulty=\(stats.poolDifficulty)")
+
             // Telemetry
             Telemetry.shared.shareSent(difficulty: zeros)
-            
+
             // Check for potential block (very high difficulty)
             if zeros >= 72 {
                 Telemetry.shared.blockWon()
