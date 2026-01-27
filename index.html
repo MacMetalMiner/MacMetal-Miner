@@ -2291,25 +2291,56 @@
         .network-overview {
             grid-template-columns: repeat(2, 1fr);
         }
-        
+
         .network-stat-value {
             font-size: 22px;
         }
-        
+
         .leaderboard-header,
         .leaderboard-row {
-            grid-template-columns: 60px 1fr 60px 100px;
+            grid-template-columns: 50px 1fr 45px 90px;
+            padding: 12px 16px;
+            font-size: 13px;
         }
 
         .lb-machine,
         .lb-uptime {
             display: none;
         }
+
+        .via-badge {
+            font-size: 9px;
+            padding: 2px 4px;
+        }
+
+        .miner-address {
+            font-size: 12px;
+        }
     }
-    
+
     @media (max-width: 480px) {
         .network-overview {
             grid-template-columns: 1fr;
+        }
+
+        .leaderboard-header,
+        .leaderboard-row {
+            grid-template-columns: 40px 1fr 40px 75px;
+            padding: 10px 12px;
+            font-size: 12px;
+        }
+
+        .lb-rank {
+            font-size: 11px;
+        }
+
+        .lb-hashrate {
+            font-size: 11px;
+        }
+
+        .via-badge {
+            font-size: 8px;
+            padding: 1px 3px;
         }
     }
     </style>
