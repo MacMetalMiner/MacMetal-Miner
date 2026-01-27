@@ -1,4 +1,4 @@
-# MacMetal CLI Miner v2.2
+# MacMetal CLI Miner v2.9
 
 Native Metal GPU Bitcoin miner for Apple Silicon Macs - Command Line Edition.
 
