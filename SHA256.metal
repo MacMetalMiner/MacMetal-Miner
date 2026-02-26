@@ -192,14 +192,15 @@ kernel void sha256_mine(
     atomic_fetch_add_explicit(hashCount, 1, memory_order_relaxed);
     
     // Count leading zero bits (for logging/display purposes)
+    // hash2[0] is the most significant word (standard SHA256 output order)
     uint zeros = 0;
-    uint val = swap32(hash2[7]);
+    uint val = hash2[0];
     if (val == 0) {
         zeros = 32;
-        val = swap32(hash2[6]);
+        val = hash2[1];
         if (val == 0) {
             zeros = 64;
-            val = swap32(hash2[5]);
+            val = hash2[2];
             if (val == 0) {
                 zeros = 96;
             } else {
@@ -211,17 +212,18 @@ kernel void sha256_mine(
     } else {
         zeros = clz(val);
     }
-    
+
     // Proper 256-bit comparison: hash < target
-    // Bitcoin hash is displayed reversed, so hash2[7] is most significant
-    // Compare from most significant to least significant (big-endian comparison)
+    // hash2[0] = most significant word, hash2[7] = least significant
+    // target[0] = most significant word, target[7] = least significant
+    // Compare from most significant to least significant
     bool belowTarget = false;
     bool decided = false;
-    
-    for (int i = 7; i >= 0 && !decided; i--) {
-        uint hashWord = swap32(hash2[i]);  // Convert to big-endian for comparison
-        uint targetWord = target[7 - i];    // Target is stored big-endian (index 0 = most significant)
-        
+
+    for (int i = 0; i < 8 && !decided; i++) {
+        uint hashWord = hash2[i];
+        uint targetWord = target[i];
+
         if (hashWord < targetWord) {
             belowTarget = true;
             decided = true;
@@ -231,7 +233,7 @@ kernel void sha256_mine(
         }
         // If equal, continue to next word
     }
-    
+
     // If all words equal, hash == target, which is NOT below target
     
     // If hash < target, save the result

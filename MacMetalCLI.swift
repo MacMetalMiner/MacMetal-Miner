@@ -163,10 +163,10 @@ kernel void sha256_mine(
     uint hash2[8]; sha256_32(hash1, hash2);
     atomic_fetch_add_explicit(hashCount, 1, memory_order_relaxed);
     uint zeros = 0;
-    uint val = swap32(hash2[7]);
+    uint val = hash2[0];
     if (val == 0) {
-        zeros = 32; val = swap32(hash2[6]);
-        if (val == 0) { zeros = 64; val = swap32(hash2[5]); if (val == 0) { zeros = 96; } else { zeros += clz(val); } }
+        zeros = 32; val = hash2[1];
+        if (val == 0) { zeros = 64; val = hash2[2]; if (val == 0) { zeros = 96; } else { zeros += clz(val); } }
         else { zeros += clz(val); }
     } else { zeros = clz(val); }
 
@@ -751,14 +751,14 @@ func buildHeader(job: Job, extranonce1: String, extranonce2: String) -> [UInt8] 
     // Must reverse each branch to little-endian before hashing
     // Then reverse final result for block header
     
-    var merkleLE = Array(sha256d(cb).reversed())  // Coinbase txid -> LE
-    
+    var merkle = sha256d(cb)
+
     for b in job.branches {
-        let branchLE = Array(hexToBytes(b).reversed())  // Branch BE -> LE
-        merkleLE = Array(sha256d(merkleLE + branchLE).reversed())  // Hash -> LE
+        let branch = hexToBytes(b)
+        merkle = sha256d(merkle + branch)
     }
-    
-    // merkleLE is now in little-endian, ready for header
+
+    // Merkle root from SHA256d is already in correct byte order for the block header
     
     var header: [UInt8] = []
     
@@ -774,7 +774,7 @@ func buildHeader(job: Job, extranonce1: String, extranonce2: String) -> [UInt8] 
     }
     
     // Merkle root: already little-endian from above
-    header.append(contentsOf: merkleLE)
+    header.append(contentsOf: merkle)
     
     // nTime: 4 bytes little-endian
     let nt = UInt32(job.ntime, radix: 16) ?? 0

@@ -434,10 +434,10 @@ kernel void sha256_mine(
     uint hash2[8]; sha256_32(hash1, hash2);
     atomic_fetch_add_explicit(hashCount, 1, memory_order_relaxed);
     uint zeros = 0;
-    uint val = swap32(hash2[7]);
+    uint val = hash2[0];
     if (val == 0) {
-        zeros = 32; val = swap32(hash2[6]);
-        if (val == 0) { zeros = 64; val = swap32(hash2[5]); if (val == 0) { zeros = 96; } else { zeros += clz(val); } }
+        zeros = 32; val = hash2[1];
+        if (val == 0) { zeros = 64; val = hash2[2]; if (val == 0) { zeros = 96; } else { zeros += clz(val); } }
         else { zeros += clz(val); }
     } else { zeros = clz(val); }
 
@@ -478,13 +478,11 @@ struct HeaderBuilder {
         var merkle = sha256d(coinbase)
 
         for branchHex in job.merkleBranchesHex {
-            var branch = hexToBytes(branchHex)
-            if config.merkleBranchMode == .reverseBranchBytes {
-                branch.reverse()
-            }
+            let branch = hexToBytes(branchHex)
             merkle = sha256d(merkle + branch)
         }
-        let merkleLE = Array(merkle.reversed())
+        // Merkle root from SHA256d is already in correct byte order for the block header
+        let merkleForHeader = merkle
 
         // 3) Prevhash handling
         let prevBytes = hexToBytes(job.prevHashHex)
@@ -505,7 +503,7 @@ struct HeaderBuilder {
 
         header.append(contentsOf: u32LE(job.versionHex))
         header.append(contentsOf: prevForHeader)
-        header.append(contentsOf: merkleLE)
+        header.append(contentsOf: merkleForHeader)
         header.append(contentsOf: u32LE(job.ntimeHex))
         header.append(contentsOf: u32LE(job.nbitsHex))
 
