@@ -389,18 +389,16 @@ class Telemetry {
         return  // Discord notifications disabled for NEX
         let webhookURL = ""
         
-        let jackpotValue = 95.0 * btcPrice
         let heightDisplay = isTest ? "🧱🧱🧱🧱🧱🧱" : "#\(blockHeight)"
-        
+
         let message = """
-        🎰 **JACKPOT WINNER!** 🎰
-        
-        The current jackpot today is **$\(Int(jackpotValue).formatted())** (95 NEX)
-        
+        🎰 **BLOCK FOUND!** 🎰
+
+        Block reward: ₿ 3.125 NEX
+
         Block: \(heightDisplay)
-        NEX Price: $\(Int(btcPrice).formatted())
         
-        🏆 A Mac Metal Miner user just hit the NEX lottery!
+        🏆 A Mac Metal Miner on the ESP pool just found a block!
         """
         
         let payload: [String: Any] = ["content": message]
@@ -772,21 +770,21 @@ class SystemCalibration {
 }
 
 // ╔═══════════════════════════════════════════════════════════════════════════════╗
-// ║                           SOLO POOL OPTIONS                                   ║
+// ║                           ESP POOL OPTIONS                                    ║
 // ╚═══════════════════════════════════════════════════════════════════════════════╝
 
-enum SoloPool: String, CaseIterable, Identifiable {
+enum MiningPool: String, CaseIterable, Identifiable {
     // NEX mining pools
     case nexMainnet = "44.213.68.147"
     case nexLocal = "192.168.1.173"
     case nexTestnet = "127.0.0.1"
     case publicPool = "public-pool.io"
-    case ckpool = "solo.ckpool.org"
+    case ckpool = "ckpool.org"
     case custom = "custom"
 
     var id: String { rawValue }
 
-    static var defaultPool: SoloPool { .nexMainnet }
+    static var defaultPool: MiningPool { .nexMainnet }
 
     var displayName: String {
         switch self {
@@ -794,7 +792,7 @@ enum SoloPool: String, CaseIterable, Identifiable {
         case .nexLocal: return "NEX Local Pool (0% fee)"
         case .nexTestnet: return "NEX Testnet (0% fee)"
         case .publicPool: return "Public Pool (0% fee)"
-        case .ckpool: return "Solo CKPool (2% fee)"
+        case .ckpool: return "CKPool (2% fee)"
         case .custom: return "Custom Pool (Advanced)"
         }
     }
@@ -805,7 +803,7 @@ enum SoloPool: String, CaseIterable, Identifiable {
         case .nexLocal: return "NEX Local"
         case .nexTestnet: return "NEX Testnet"
         case .publicPool: return "Public Pool"
-        case .ckpool: return "Solo CKPool"
+        case .ckpool: return "CKPool"
         case .custom: return "Custom Pool"
         }
     }
@@ -1296,18 +1294,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Observable
         return
         let webhookURL = ""
         
-        let btcPrice = minerState.btcPrice > 0 ? minerState.btcPrice : 95000.0
-        let jackpotValue = 95.0 * btcPrice
-        
         let message = """
-        🎰 **JACKPOT WINNER!** 🎰
-        
-        The current jackpot today is **$\(Int(jackpotValue).formatted())** (95 NEX)
-        
+        🎰 **BLOCK FOUND!** 🎰
+
+        Block reward: ₿ 3.125 NEX
+
         Block: 🧱🧱🧱🧱🧱🧱
-        NEX Price: $\(Int(btcPrice).formatted())
-        
-        🏆 A Mac Metal Miner user just hit the NEX lottery!
+
+        🏆 A Mac Metal Miner on the ESP pool just found a block!
         """
         
         let payload: [String: Any] = ["content": message]
@@ -1924,6 +1918,7 @@ class MinerState: ObservableObject {
     @Published var poolName = ""
     @Published var poolFee: Double = 0
     @Published var btcPrice: Double = 95000
+    @Published var nexBalance: Double = 0.0  // Wallet balance from pool payouts
     @Published var logs: [LogEntry] = []
     @Published var macModel = SystemInfo.getMacModel()
     @Published var gpuName = MTLCreateSystemDefaultDevice()?.name ?? "Unknown"
@@ -1931,7 +1926,7 @@ class MinerState: ObservableObject {
     @Published var ramGB = SystemInfo.getMemoryGB()
     @Published var soundEnabled = true
     @Published var showNotifications = true
-    @Published var selectedPool: SoloPool = .nexMainnet  // Default to NEX mainnet pool
+    @Published var selectedPool: MiningPool = .nexMainnet  // Default to NEX mainnet pool
     @Published var customHost = ""
     @Published var customPort = "3333"
     @Published var customPoolName = ""
@@ -1945,6 +1940,7 @@ class MinerState: ObservableObject {
     @Published var proxyRunning = false
     @Published var connectedASICs: Int = 0
     @Published var asicDevices: [ASICDeviceInfo] = []
+    let bitaxeScanner = BitaxeScanner()
     private var proxy: StratumProxy?
 
     struct ASICDeviceInfo: Identifiable {
@@ -1957,7 +1953,7 @@ class MinerState: ObservableObject {
     }
 
     // Info sheet states
-    @Published var showSoloMinerInfo = false
+    @Published var showPoolMinerInfo = false
     @Published var showLuckInfo = false
     @Published var showNonceInfo = false
     
@@ -2035,7 +2031,8 @@ class MinerState: ObservableObject {
         fetchBTCPrice()
         initializeSessionLog()
         updateMemoryInfo()
-        
+        startBalanceRefresh()
+
         // Fetch price every 60 seconds for accurate display
         Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.fetchBTCPrice()
@@ -2047,6 +2044,36 @@ class MinerState: ObservableObject {
         }
     }
     
+    private func startBalanceRefresh() {
+        let rpc = NexRpcClient()
+        // Use the same per-device wallet ID
+        let key = "nex_wallet_id"
+        if let existing = UserDefaults.standard.string(forKey: key) {
+            rpc.wallet = existing
+        } else {
+            let id = "mmm_\(UUID().uuidString.prefix(8).lowercased())"
+            UserDefaults.standard.set(id, forKey: key)
+            rpc.wallet = id
+        }
+        // Ensure wallet exists
+        Task {
+            _ = try? await rpc.call("createwallet", params: [rpc.wallet])
+            _ = try? await rpc.call("loadwallet", params: [rpc.wallet])
+            // Initial fetch
+            if let bal = try? await rpc.getBalance() {
+                await MainActor.run { self.nexBalance = bal }
+            }
+        }
+        // Refresh every 15 seconds
+        Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
+            Task {
+                if let bal = try? await rpc.getBalance() {
+                    await MainActor.run { self?.nexBalance = bal }
+                }
+            }
+        }
+    }
+
     private func initializeSessionLog() {
         guard let url = sessionLogURL else { return }
         
@@ -2197,7 +2224,7 @@ class MinerState: ObservableObject {
         addLog("₿ gpu_result: Nonce \(String(format: "%08X", nonce)) diff \(String(format: "%.1f", diff)) of \(String(format: "%.0f", targetDiff))", category: "gpu")
     }
     
-    func startMining(pool: SoloPool, license: String?) {
+    func startMining(pool: MiningPool, license: String?) {
         guard !isMining else { return }
         
         // Don't allow mining if locked from win
@@ -2287,6 +2314,8 @@ class MinerState: ObservableObject {
                     self.proxy = p
                     self.proxyRunning = true
                     self.addLog("[Proxy] LAN proxy started on :\(self.proxyPort)", category: "asic")
+                    // Auto-scan for Bitaxe devices on the LAN
+                    self.bitaxeScanner.scan()
 
                     // Seed proxy with current job/diff so ASICs connecting get them immediately
                     if let job = self.currentJob {
@@ -2904,7 +2933,7 @@ class MinerState: ObservableObject {
         
         // Load saved pool selection
         if let savedPoolRaw = defaults.string(forKey: "selectedPool"),
-           let savedPool = SoloPool(rawValue: savedPoolRaw) {
+           let savedPool = MiningPool(rawValue: savedPoolRaw) {
             selectedPool = savedPool
             CrashLogger.shared.log("Loaded saved pool: \(savedPool.displayName)")
         }
@@ -3344,20 +3373,15 @@ class GPUMiner {
 // MARK: - NEX Wallet RPC Client
 
 class NexRpcClient {
-    var host: String = "127.0.0.1"  // Via SSH tunnel to server nexd
-    var port: Int = 9332
-    var user: String = "nex"
-    var pass: String = "6c41e991419bef293d9910243a188fc2"
+    var baseURL: String = "https://untraceablex.com/rpc.php"
     var wallet: String = "mmm_wallet"
 
     func call(_ method: String, params: [Any] = []) async throws -> Any {
-        let url = URL(string: "http://\(host):\(port)/wallet/\(wallet)")!
+        let urlStr = "\(baseURL)?wallet=\(wallet)"
+        let url = URL(string: urlStr)!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let auth = "\(user):\(pass)".data(using: .utf8)!.base64EncodedString()
-        request.setValue("Basic \(auth)", forHTTPHeaderField: "Authorization")
 
         let body: [String: Any] = [
             "jsonrpc": "1.0",
@@ -3461,15 +3485,41 @@ class WalletViewModel: ObservableObject {
     private var refreshTimer: Timer?
 
     let rpc = NexRpcClient()
+    @Published var walletReady: Bool = false
 
     init() {
-        refreshBalance()
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            self?.refreshBalance()
+        // Generate a persistent wallet ID per device
+        let key = "nex_wallet_id"
+        if let existing = UserDefaults.standard.string(forKey: key) {
+            rpc.wallet = existing
+        } else {
+            let id = "mmm_\(UUID().uuidString.prefix(8).lowercased())"
+            UserDefaults.standard.set(id, forKey: key)
+            rpc.wallet = id
         }
-        // Fetch tier every 30 seconds
-        Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
-            self?.fetchCurrentTier()
+        // Ensure wallet exists on server, then start
+        ensureWallet()
+    }
+
+    private func ensureWallet() {
+        Task {
+            // Try to create wallet (ignore error if already exists)
+            _ = try? await rpc.call("createwallet", params: [rpc.wallet])
+            // Try to load wallet (ignore error if already loaded)
+            _ = try? await rpc.call("loadwallet", params: [rpc.wallet])
+            await MainActor.run {
+                self.walletReady = true
+            }
+            // Now start periodic refresh
+            await MainActor.run {
+                self.refreshBalance()
+                self.refreshTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+                    self?.refreshBalance()
+                }
+                Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+                    self?.fetchCurrentTier()
+                }
+            }
         }
     }
 
@@ -3559,6 +3609,9 @@ class WalletViewModel: ObservableObject {
         }
     }
 
+    static let poolAPIBase = "https://untraceablex.com/pool-api"
+    static let espStakeAddress = "nx1q49avq6r4tfda0mzctznj2qj6apqchudt26rzwm"
+
     func stakeForESP(poolHost: String) {
         let tierAmounts: [String: Double] = [
             "nano": 10, "micro": 50, "standard": 100, "pro": 500, "ultra": 1000
@@ -3572,20 +3625,19 @@ class WalletViewModel: ObservableObject {
             return
         }
 
-        stakeStatus = "Sending stake..."
+        stakeStatus = "Sending \(amount) NEX stake..."
         Task {
             do {
-                // 1. Send stake NEX to pool stake address (same as pool address)
-                let stakeAddress = "nx1q49avq6r4tfda0mzctznj2qj6apqchudt26rzwm"
-                let txid = try await rpc.sendToAddress(stakeAddress, amount: amount)
+                // 1. Send stake NEX to pool stake address
+                let txid = try await rpc.sendToAddress(WalletViewModel.espStakeAddress, amount: amount)
                 await MainActor.run {
                     self.stakeStatus = "TX sent, registering..."
                     self.cliHistory.append("> [ESP] Stake \(amount) NEX for \(self.selectedStakeTier) tier")
                     self.cliHistory.append("  TX: \(txid)")
                 }
 
-                // 2. Register with pool API (via SSH tunnel on localhost)
-                let apiUrl = URL(string: "http://127.0.0.1:8080/api/esp/stake")!
+                // 2. Register with pool API
+                let apiUrl = URL(string: "\(WalletViewModel.poolAPIBase)/esp/stake")!
                 var request = URLRequest(url: apiUrl)
                 request.httpMethod = "POST"
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -3600,8 +3652,9 @@ class WalletViewModel: ObservableObject {
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let ok = json["ok"] as? Bool, ok {
                     await MainActor.run {
-                        self.stakeStatus = "Staked! Tier: \(self.selectedStakeTier)"
+                        self.stakeStatus = "Upgraded to \(self.selectedStakeTier) tier!"
                         self.cliHistory.append("  [ESP] Registered for \(self.selectedStakeTier) tier")
+                        self.currentTier = self.selectedStakeTier
                         self.refreshBalance()
                     }
                 } else {
@@ -3624,7 +3677,7 @@ class WalletViewModel: ObservableObject {
         tierLoading = true
         Task {
             do {
-                let url = URL(string: "http://127.0.0.1:8080/api/esp/miner/\(currentAddress)")!
+                let url = URL(string: "\(WalletViewModel.poolAPIBase)/esp/miner/\(currentAddress)")!
                 let (data, _) = try await URLSession.shared.data(from: url)
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let tier = json["tier"] as? String {
@@ -3655,7 +3708,7 @@ class WalletViewModel: ObservableObject {
         stakeStatus = "Requesting unstake..."
         Task {
             do {
-                let apiUrl = URL(string: "http://127.0.0.1:8080/api/esp/unstake")!
+                let apiUrl = URL(string: "\(WalletViewModel.poolAPIBase)/esp/unstake")!
                 var request = URLRequest(url: apiUrl)
                 request.httpMethod = "POST"
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -3873,21 +3926,25 @@ struct WalletTabView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                // Stake controls
+                // Stake controls — upgrade tier
                 HStack(spacing: 8) {
-                    Picker("Tier", selection: $walletVM.selectedStakeTier) {
-                        Text("Nano (10 NEX)").tag("nano")
-                        Text("Micro (50 NEX)").tag("micro")
-                        Text("Standard (100 NEX)").tag("standard")
-                        Text("Pro (500 NEX)").tag("pro")
-                        Text("Ultra (1000 NEX)").tag("ultra")
-                    }
-                    .frame(maxWidth: 180)
+                    Text("Upgrade:")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.gray)
 
-                    Button("Stake & Register") { walletVM.stakeForESP(poolHost: minerState.poolHost) }
+                    Picker("Tier", selection: $walletVM.selectedStakeTier) {
+                        Text("Nano — 10 NEX").tag("nano")
+                        Text("Micro — 50 NEX").tag("micro")
+                        Text("Standard — 100 NEX").tag("standard")
+                        Text("Pro — 500 NEX").tag("pro")
+                        Text("Ultra — 1000 NEX").tag("ultra")
+                    }
+                    .frame(maxWidth: 200)
+
+                    Button("Stake & Upgrade") { walletVM.stakeForESP(poolHost: minerState.poolHost) }
                         .buttonStyle(.borderedProminent)
                         .tint(.orange)
-                        .disabled(walletVM.currentAddress.isEmpty || walletVM.currentTier != "starter" && walletVM.currentTier != "none" && walletVM.currentTier != "unknown")
+                        .disabled(walletVM.currentAddress.isEmpty)
 
                     if walletVM.currentTier != "none" && walletVM.currentTier != "starter" && walletVM.currentTier != "unknown" {
                         Button("Unstake") { walletVM.unstakeFromESP() }
@@ -3896,9 +3953,7 @@ struct WalletTabView: View {
                     }
                 }
 
-                Text(walletVM.currentTier == "starter" || walletVM.currentTier == "none"
-                     ? "Stake NEX to upgrade from free starter tier. Unstake available after 7 days."
-                     : "Staked in \(walletVM.currentTier) tier. Unstake returns NEX after 7-day cooldown.")
+                Text("You're auto-registered in the free Starter tier (5% rewards). Stake NEX to upgrade for higher reward shares. Unstake available after 7 days.")
                     .font(.system(size: 9))
                     .foregroundColor(.gray.opacity(0.6))
             }
@@ -4213,6 +4268,186 @@ class StratumClient {
  Application: Generate realistic test data for mining software validation
  NOT USED IN PRODUCTION - Research prototype only
 */
+
+// ╔═══════════════════════════════════════════════════════════════════════════════╗
+// ║                     BITAXE AUTO-DISCOVERY                                      ║
+// ╚═══════════════════════════════════════════════════════════════════════════════╝
+
+struct DiscoveredBitaxe: Identifiable {
+    let id = UUID()
+    let ip: String
+    var hostname: String = ""
+    var model: String = ""
+    var hashrate: Double = 0  // GH/s
+    var temp: Double = 0
+    var bestDiff: String = ""
+    var stratumURL: String = ""
+    var stratumPort: Int = 0
+    var stratumUser: String = ""
+    var version: String = ""
+    var uptimeSeconds: Int = 0
+    var isConnectedToUs: Bool = false
+}
+
+class BitaxeScanner: ObservableObject {
+    @Published var devices: [DiscoveredBitaxe] = []
+    @Published var isScanning: Bool = false
+    @Published var scanProgress: String = ""
+
+    private var scanTask: Task<Void, Never>?
+
+    func scan() {
+        guard !isScanning else { return }
+        isScanning = true
+        devices = []
+        scanProgress = "Scanning LAN..."
+
+        scanTask = Task { [weak self] in
+            guard let self = self else { return }
+            let lanIP = getLANIPAddress()
+            guard lanIP != "unknown" else {
+                await MainActor.run {
+                    self.scanProgress = "No LAN connection"
+                    self.isScanning = false
+                }
+                return
+            }
+
+            // Get subnet prefix (e.g., "192.168.1")
+            let parts = lanIP.split(separator: ".")
+            guard parts.count == 4 else {
+                await MainActor.run {
+                    self.scanProgress = "Invalid LAN IP"
+                    self.isScanning = false
+                }
+                return
+            }
+            let subnet = parts[0..<3].joined(separator: ".")
+
+            // Scan subnet in parallel batches
+            var found: [DiscoveredBitaxe] = []
+            let batchSize = 20
+
+            for batchStart in stride(from: 1, to: 255, by: batchSize) {
+                if Task.isCancelled { break }
+                let batchEnd = min(batchStart + batchSize, 255)
+
+                await MainActor.run {
+                    self.scanProgress = "Scanning \(subnet).\(batchStart)-\(batchEnd)..."
+                }
+
+                await withTaskGroup(of: DiscoveredBitaxe?.self) { group in
+                    for i in batchStart..<batchEnd {
+                        let ip = "\(subnet).\(i)"
+                        group.addTask {
+                            return await self.probeBitaxe(ip: ip)
+                        }
+                    }
+                    for await result in group {
+                        if let device = result {
+                            found.append(device)
+                            Task { @MainActor in
+                                self.devices = found
+                            }
+                        }
+                    }
+                }
+            }
+
+            await MainActor.run {
+                self.devices = found
+                self.scanProgress = found.isEmpty ? "No Bitaxe found" : "\(found.count) Bitaxe\(found.count == 1 ? "" : "s") found"
+                self.isScanning = false
+            }
+        }
+    }
+
+    func stopScan() {
+        scanTask?.cancel()
+        isScanning = false
+    }
+
+    private func probeBitaxe(ip: String) async -> DiscoveredBitaxe? {
+        // Try Bitaxe API — times out fast for non-Bitaxe hosts
+        guard let url = URL(string: "http://\(ip)/api/system/info") else { return nil }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 1.5  // Fast timeout
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 else { return nil }
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+
+            // Bitaxe returns fields like "ASICModel", "hashRate", "temp", etc.
+            // Check for Bitaxe-specific fields
+            guard json["ASICModel"] != nil || json["asicModel"] != nil ||
+                  json["hashRate"] != nil || json["boardVersion"] != nil else { return nil }
+
+            var device = DiscoveredBitaxe(ip: ip)
+            device.model = (json["ASICModel"] as? String) ?? (json["asicModel"] as? String) ?? (json["boardVersion"] as? String) ?? "Bitaxe"
+            device.hashrate = (json["hashRate"] as? Double) ?? 0
+            device.temp = (json["temp"] as? Double) ?? 0
+            device.bestDiff = (json["bestDiff"] as? String) ?? String(format: "%.0f", (json["bestDiff"] as? Double) ?? 0)
+            device.stratumURL = (json["stratumURL"] as? String) ?? (json["stratumUrl"] as? String) ?? ""
+            device.stratumPort = (json["stratumPort"] as? Int) ?? (json["fallbackStratumPort"] as? Int) ?? 3333
+            device.stratumUser = (json["stratumUser"] as? String) ?? ""
+            device.version = (json["version"] as? String) ?? (json["firmwareVersion"] as? String) ?? ""
+            device.uptimeSeconds = (json["uptimeSeconds"] as? Int) ?? 0
+            device.hostname = (json["hostname"] as? String) ?? ip
+
+            // Check if it's already pointing at us
+            let lanIP = getLANIPAddress()
+            if device.stratumURL.contains(lanIP) {
+                device.isConnectedToUs = true
+            }
+
+            return device
+        } catch {
+            return nil
+        }
+    }
+
+    func configureBitaxe(ip: String, stratumHost: String, stratumPort: UInt16, worker: String) async -> (Bool, String) {
+        // PATCH /api/system to update stratum settings
+        guard let url = URL(string: "http://\(ip)/api/system") else {
+            return (false, "Invalid IP")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 5
+
+        let body: [String: Any] = [
+            "stratumURL": "stratum+tcp://\(stratumHost)",
+            "stratumPort": stratumPort,
+            "stratumUser": worker
+        ]
+
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 {
+                // Restart the Bitaxe to apply settings
+                if let restartURL = URL(string: "http://\(ip)/api/system/restart") {
+                    var restartReq = URLRequest(url: restartURL)
+                    restartReq.httpMethod = "POST"
+                    restartReq.timeoutInterval = 3
+                    _ = try? await URLSession.shared.data(for: restartReq)
+                }
+                return (true, "Configured! Bitaxe restarting...")
+            } else {
+                return (false, "HTTP error")
+            }
+        } catch {
+            return (false, error.localizedDescription)
+        }
+    }
+
+    func refreshDevice(ip: String) async -> DiscoveredBitaxe? {
+        return await probeBitaxe(ip: ip)
+    }
+}
 
 // ╔═══════════════════════════════════════════════════════════════════════════════╗
 // ║                     LAN ASIC STRATUM PROXY                                    ║
@@ -4908,11 +5143,11 @@ struct MenuBarDropdownView: View {
                 Text("Jackpot:")
                     .font(.system(size: 10))
                     .foregroundColor(.gray)
-                Text("$\(Int(3.125 * minerState.btcPrice).formatted())")
+                Text("₿ 3.125 NEX")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(.mmmCyan)
                 Spacer()
-                Text("NEX: $\(Int(minerState.btcPrice).formatted())")
+                Text("₿ \(String(format: "%.4f", minerState.nexBalance)) NEX")
                     .font(.system(size: 9))
                     .foregroundColor(.gray)
             }
@@ -5647,8 +5882,8 @@ struct MiningDashboardView: View {
         .sheet(isPresented: $showingSecurityInfo) {
             SecurityInfoView(isPresented: $showingSecurityInfo)
         }
-        .sheet(isPresented: $minerState.showSoloMinerInfo) {
-            SoloMinerInfoView()
+        .sheet(isPresented: $minerState.showPoolMinerInfo) {
+            PoolMinerInfoView()
         }
         .sheet(isPresented: $minerState.showLuckInfo) {
             LuckInfoView()
@@ -5765,10 +6000,10 @@ struct MiningDashboardView: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.08), lineWidth: 1))
                 .cornerRadius(8)
 
-                // Jackpot display
+                // Balance display
                 HStack {
                     VStack(alignment: .leading) {
-                        Text("$\(Int(minerState.btcPrice).formatted())")
+                        Text("₿ \(String(format: "%.4f", minerState.nexBalance))")
                             .font(.system(size: 18, weight: .bold, design: .monospaced))
                             .foregroundColor(.mmmMagenta)
                         Text("NEX")
@@ -5777,7 +6012,7 @@ struct MiningDashboardView: View {
                     }
                     Spacer()
                     VStack(alignment: .trailing) {
-                        Text("$\(Int(jackpotValue).formatted())")
+                        Text("₿ \(String(format: "%.1f", 3.125))")
                             .font(.system(size: 18, weight: .bold, design: .monospaced))
                             .foregroundColor(.mmmCyan)
                         Text("Jackpot")
@@ -5879,11 +6114,11 @@ struct MiningDashboardView: View {
                 .background(Color(hex: "1a1a2e"))
                 .cornerRadius(12)
                 
-                // Solo mining explanation
+                // ESP pool mining explanation
                 HStack {
-                    Image(systemName: "ticket.fill")
-                        .foregroundColor(.yellow)
-                    Text("Solo mining is a lottery. You compete for the full 95 NEX block reward. Low odds, but one lucky hash wins it all!")
+                    Image(systemName: "person.3.fill")
+                        .foregroundColor(.mmmCyan)
+                    Text("ESP pool mining combines your hashrate with other miners. Rewards are distributed based on your stake tier and contributed shares.")
                         .font(.system(size: 10))
                         .foregroundColor(.gray)
                 }
@@ -5903,19 +6138,19 @@ struct MiningDashboardView: View {
         VStack(spacing: 0) {
             // TOP SECTION - Fixed (Pool, Address, Start button)
             VStack(alignment: .leading, spacing: 8) {
-                // Header with Solo Miner info button and config status
+                // Header with ESP Pool info button and config status
                 HStack {
-                    Text("SOLO MINER")
+                    Text("ESP POOL MINER")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.mmmCyan)
                     
-                    Button(action: { minerState.showSoloMinerInfo = true }) {
+                    Button(action: { minerState.showPoolMinerInfo = true }) {
                         Image(systemName: "info.circle")
                             .font(.system(size: 11))
                             .foregroundColor(.mmmCyan.opacity(0.8))
                     }
                     .buttonStyle(.plain)
-                    .help("Learn about solo mining")
+                    .help("Learn about ESP pool mining")
                     
                     Spacer()
                     
@@ -6031,31 +6266,128 @@ struct MiningDashboardView: View {
                     }
                 }
 
-                // LAN IP — show connection string for ASICs
+                // Bitaxe Auto-Discovery
                 if minerState.proxyEnabled {
                     let lanIP = getLANIPAddress()
                     let connStr = "\(lanIP):\(minerState.proxyPort)"
-                    HStack(spacing: 6) {
-                        Text("ASIC Config →")
-                            .font(.system(size: 9))
-                            .foregroundColor(.gray)
-                        Text(connStr)
-                            .font(.system(size: 11, weight: .medium, design: .monospaced))
-                            .foregroundColor(.orange)
-                            .textSelection(.enabled)
-                        Button {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString("stratum+tcp://\(connStr)", forType: .string)
-                        } label: {
-                            Image(systemName: "doc.on.doc")
-                                .font(.system(size: 9))
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 8) {
+                            Button {
+                                minerState.bitaxeScanner.scan()
+                            } label: {
+                                HStack(spacing: 4) {
+                                    if minerState.bitaxeScanner.isScanning {
+                                        ProgressView()
+                                            .scaleEffect(0.5)
+                                            .frame(width: 12, height: 12)
+                                    } else {
+                                        Image(systemName: "antenna.radiowaves.left.and.right")
+                                            .font(.system(size: 10))
+                                    }
+                                    Text(minerState.bitaxeScanner.isScanning ? "Scanning..." : "Find Bitaxe")
+                                        .font(.system(size: 10, weight: .medium))
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.orange)
+                            .controlSize(.small)
+                            .disabled(minerState.bitaxeScanner.isScanning)
+
+                            Text(minerState.bitaxeScanner.scanProgress)
+                                .font(.system(size: 9, design: .monospaced))
                                 .foregroundColor(.gray)
+
+                            Spacer()
+
+                            Text(connStr)
+                                .font(.system(size: 9, design: .monospaced))
+                                .foregroundColor(.orange.opacity(0.5))
                         }
-                        .buttonStyle(.plain)
-                        .help("Copy stratum+tcp://\(connStr)")
-                        Spacer()
+
+                        // Discovered Bitaxe devices
+                        ForEach(minerState.bitaxeScanner.devices) { device in
+                            HStack(spacing: 8) {
+                                // Bitaxe icon
+                                Image(systemName: "cpu")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.orange)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: 6) {
+                                        Text(device.hostname)
+                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                            .foregroundColor(.white)
+                                        Text(device.model)
+                                            .font(.system(size: 9))
+                                            .foregroundColor(.orange)
+                                            .padding(.horizontal, 4)
+                                            .padding(.vertical, 1)
+                                            .background(Color.orange.opacity(0.15))
+                                            .cornerRadius(3)
+                                        if !device.version.isEmpty {
+                                            Text("v\(device.version)")
+                                                .font(.system(size: 8))
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
+                                    HStack(spacing: 12) {
+                                        Text(String(format: "%.1f GH/s", device.hashrate))
+                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                            .foregroundColor(.mmmNeonGreen)
+                                        Text(String(format: "%.0f°C", device.temp))
+                                            .font(.system(size: 10, design: .monospaced))
+                                            .foregroundColor(device.temp > 70 ? .red : .mmmCyan)
+                                        Text(device.ip)
+                                            .font(.system(size: 9, design: .monospaced))
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+
+                                Spacer()
+
+                                if device.isConnectedToUs {
+                                    HStack(spacing: 3) {
+                                        Circle().fill(Color.mmmNeonGreen).frame(width: 6, height: 6)
+                                        Text("Connected")
+                                            .font(.system(size: 9, weight: .medium))
+                                            .foregroundColor(.mmmNeonGreen)
+                                    }
+                                } else {
+                                    Button {
+                                        Task {
+                                            let worker = minerState.address.isEmpty ? "bitaxe" : minerState.address
+                                            let (ok, msg) = await minerState.bitaxeScanner.configureBitaxe(
+                                                ip: device.ip,
+                                                stratumHost: lanIP,
+                                                stratumPort: minerState.proxyPort,
+                                                worker: worker
+                                            )
+                                            if ok {
+                                                // Rescan after a few seconds to update status
+                                                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                                                minerState.bitaxeScanner.scan()
+                                            }
+                                        }
+                                    } label: {
+                                        Text("Connect")
+                                            .font(.system(size: 10, weight: .medium))
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .tint(.mmmNeonGreen)
+                                    .controlSize(.small)
+                                }
+                            }
+                            .padding(8)
+                            .background(Color.white.opacity(0.03))
+                            .cornerRadius(6)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(device.isConnectedToUs ? Color.mmmNeonGreen.opacity(0.3) : Color.orange.opacity(0.2), lineWidth: 1)
+                            )
+                        }
                     }
-                    .padding(.top, 2)
+                    .padding(.top, 4)
                 }
 
                 // ASIC device list (collapsible)
@@ -6941,10 +7273,10 @@ struct MiningDashboardView: View {
         }
     }
     
-    // Solo Miner Info Sheet View
-    struct SoloMinerInfoView: View {
+    // ESP Pool Miner Info Sheet View
+    struct PoolMinerInfoView: View {
         @Environment(\.dismiss) var dismiss
-        
+
         var body: some View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
@@ -6952,10 +7284,10 @@ struct MiningDashboardView: View {
                         .font(.system(size: 32))
                         .foregroundColor(.mmmMagenta)
                     VStack(alignment: .leading) {
-                        Text("Solo Mining")
+                        Text("ESP Pool Mining")
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
-                        Text("Winner Takes All")
+                        Text("EqualShare Pool — Stake to Mine")
                             .font(.system(size: 12))
                             .foregroundColor(.mmmCyan)
                     }
@@ -6967,21 +7299,21 @@ struct MiningDashboardView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                
+
                 Divider().background(Color.gray.opacity(0.3))
-                
+
                 VStack(alignment: .leading, spacing: 12) {
-                    InfoSection(icon: "trophy.fill", title: "Full Block Reward", 
-                        description: "When you find a block, YOU keep the entire 95 NEX block reward. No pool fees, no sharing.")
-                    
-                    InfoSection(icon: "dice.fill", title: "It's a Lottery", 
-                        description: "Solo mining is like playing the lottery. The odds of finding a block with consumer hardware are very low, but someone always wins!")
-                    
-                    InfoSection(icon: "clock.fill", title: "Patience Required", 
-                        description: "Statistically, solo mining with ~350 MH/s means billions of years on average to find a block. But luck can strike at any time!")
-                    
-                    InfoSection(icon: "exclamationmark.triangle.fill", title: "Important", 
-                        description: "This is NOT a way to make consistent income. Mine for fun, education, or the dream of hitting the jackpot. Never invest more than you can lose.", color: .yellow)
+                    InfoSection(icon: "person.3.fill", title: "Pool Mining",
+                        description: "Your hashrate is combined with other miners. When the pool finds a block, rewards are distributed based on your stake tier and contributed shares.")
+
+                    InfoSection(icon: "arrow.up.circle.fill", title: "Stake Tiers",
+                        description: "Stake NEX to unlock higher reward tiers — from Nano (10 NEX) to Ultra (10,000 NEX). Higher stakes earn a larger share of pool rewards.")
+
+                    InfoSection(icon: "chart.bar.fill", title: "Consistent Rewards",
+                        description: "Pool mining provides more frequent, consistent payouts. Your earnings scale with your hashrate and stake tier.")
+
+                    InfoSection(icon: "shield.fill", title: "No Minimum",
+                        description: "Start mining at the free starter tier with no stake required. Upgrade anytime by staking NEX to increase your reward share.")
                 }
                 
                 Spacer()
@@ -7095,7 +7427,7 @@ struct MiningDashboardView: View {
                         description: "The spinning nonce shows values being tested. At 350 MH/s, you're testing ~350 million nonces per second!", color: .yellow)
                     
                     InfoSection(icon: "star.fill", title: "Finding a Share", 
-                        description: "When a nonce produces a hash below the pool's target, that nonce is submitted as a 'share'. A block-winning nonce is like winning the lottery.")
+                        description: "When a nonce produces a hash below the pool's target, that nonce is submitted as a 'share'. Shares prove your work contribution to the ESP pool.")
                 }
                 
                 Spacer()
@@ -7329,11 +7661,11 @@ struct HowItWorksView: View {
                     // Mining basics
                     sectionHeader("Mining Basics")
                     
-                    infoRow(icon: "bolt.fill", title: "GPU Mining", 
-                           detail: "Uses Apple Silicon GPU for SHA256 hashing. M3 Max achieves ~350 MH/s. Your GPU computes millions of hashes per second looking for the winning lottery ticket.")
-                    
-                    infoRow(icon: "ticket.fill", title: "Solo Mining", 
-                           detail: "Each share is a lottery ticket. If your hash beats the network difficulty target, you win the ENTIRE 95 NEX block reward! Low odds, but maximum reward.")
+                    infoRow(icon: "bolt.fill", title: "GPU Mining",
+                           detail: "Uses Apple Silicon GPU for SHA256 hashing. M3 Max achieves ~350 MH/s. Your GPU computes millions of hashes per second contributing shares to the ESP pool.")
+
+                    infoRow(icon: "person.3.fill", title: "ESP Pool Mining",
+                           detail: "Your shares contribute to the pool's combined effort. When the pool finds a block, the 95 NEX reward is distributed based on your stake tier and share count.")
                     
                     infoRow(icon: "chart.bar.fill", title: "Hashrate", 
                            detail: "The pool measures your speed by counting valid shares. Initial readings may be high, then stabilize over 5-10 minutes.")
@@ -7377,7 +7709,7 @@ struct HowItWorksView: View {
                 
                 Divider().background(Color.gray.opacity(0.3))
                 
-                Text("Mining is a fun lottery. Apple Silicon is among the most efficient for GPU tasks.")
+                Text("ESP pool mining with Apple Silicon. Among the most efficient GPU mining hardware available.")
                     .font(.system(size: 10))
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
