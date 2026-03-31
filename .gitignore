@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+*.app/
+*.xcodeproj/
+xcuserdata/
+DerivedData/
+
+# Build artifacts
+build/
+*.o
+*.d
+
+# Logs
+*.log
+
+# Database
+*.db
+*.db-shm
+*.db-wal
