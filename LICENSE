@@ -1,0 +1,54 @@
+MacMetal Miner - Source Available License
+
+Copyright (c) 2025 David Otero / Distributed Ledger Technologies
+www.distributedledgertechnologies.com
+
+SOURCE-AVAILABLE LICENSE AGREEMENT
+
+This software and associated documentation files (the "Software") are made
+available for viewing and inspection purposes only. By accessing, viewing,
+or downloading this Software, you agree to the following terms:
+
+PERMITTED USES:
+- Viewing and reading the source code for personal education
+- Security auditing and verification that the software is safe
+- Verifying that mining rewards are sent to YOUR wallet address
+- Running the unmodified Software for personal Bitcoin mining
+
+PROHIBITED USES:
+- Copying, reproducing, or duplicating the Software or any portion thereof
+- Modifying, adapting, or creating derivative works based on the Software
+- Distributing, publishing, or sharing the Software with third parties
+- Sublicensing, selling, or commercially exploiting the Software
+- Reverse engineering beyond what is visible in the provided source code
+- Using any portion of this code in other projects or products
+- Removing or altering any proprietary notices or labels
+
+INTELLECTUAL PROPERTY:
+This Software contains novel implementations of Metal GPU Bitcoin mining
+that may be subject to patent protection. The algorithms, methods, and
+techniques embodied in this Software are proprietary trade secrets.
+
+NO WARRANTY:
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+LIMITATION OF LIABILITY:
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+ENFORCEMENT:
+Unauthorized copying, modification, or distribution of this Software will
+result in DMCA takedown notices and may result in civil and criminal
+penalties under applicable copyright and trade secret laws.
+
+TERMINATION:
+This license is effective until terminated. Your rights under this license
+will terminate automatically without notice if you fail to comply with any
+of its terms.
+
+For licensing inquiries or commercial use: admin@ayedex.com
+Purchase GUI version: https://winnertakeall.gumroad.com/l/bitcoin

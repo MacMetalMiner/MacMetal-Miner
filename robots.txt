@@ -1,0 +1,11 @@
+# MacMetal Miner Pro Max - robots.txt
+# https://systemthreat.github.io/Mac-Pro-Bitcoin-Mining/
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://systemthreat.github.io/Mac-Pro-Bitcoin-Mining/sitemap.xml
+
+# Crawl-delay (optional, be nice to crawlers)
+Crawl-delay: 1

@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Live Leaderboard | MacMetal Miner</title>
+    <meta name="description" content="Live leaderboard of MacMetal Miner users competing for Bitcoin blocks">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        :root {
+            --neon-orange: #f7931a;
+            --neon-blue: #00d4ff;
+            --neon-green: #00ff88;
+            --neon-gold: #ffd700;
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-card-hover: #1a1a24;
+            --text-primary: #ffffff;
+            --text-secondary: #888;
+            --border-color: rgba(0,212,255,0.2);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: 20px;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(90deg, rgba(247,147,26,0.02) 1px, transparent 1px),
+                linear-gradient(rgba(247,147,26,0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 12px;
+        }
+        
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 16px;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+        }
+        
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--neon-orange), var(--neon-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(0,255,136,0.1);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .live-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .back-btn {
+            background: rgba(247,147,26,0.1);
+            border: 1px solid var(--neon-orange);
+            color: var(--neon-orange);
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 8px;
+            text-align: center;
+        }
+        
+        .stat-card.highlight {
+            border-color: var(--neon-orange);
+            background: linear-gradient(135deg, rgba(247,147,26,0.1), rgba(247,147,26,0.05));
+        }
+        
+        .stat-icon {
+            width: 22px;
+            height: 22px;
+            margin: 0 auto 6px;
+        }
+        
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--neon-green);
+        }
+        
+        .stat-card.highlight .stat-value {
+            color: var(--neon-orange);
+            font-size: 1.3rem;
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+        
+        .tab {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 10px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-align: center;
+        }
+        
+        .tab.active {
+            background: rgba(0,212,255,0.1);
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+        }
+        
+        /* Section Header */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .section-title svg {
+            width: 18px;
+            height: 18px;
+        }
+        
+        .refresh-badge {
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+        }
+        
+        /* Miner Cards */
+        .miner-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .miner-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .miner-card.expanded {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 20px rgba(0,212,255,0.15);
+        }
+        
+        .miner-header {
+            display: flex;
+            align-items: center;
+            padding: 14px;
+            cursor: pointer;
+            gap: 12px;
+        }
+        
+        .miner-rank {
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        
+        .miner-rank.gold { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; }
+        .miner-rank.silver { background: linear-gradient(135deg, #c0c0c0, #a0a0a0); color: #000; }
+        .miner-rank.bronze { background: linear-gradient(135deg, #cd7f32, #a66828); color: #fff; }
+        .miner-rank.normal { background: var(--bg-card-hover); color: var(--text-secondary); }
+        
+        .miner-info {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+        
+        .miner-top-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 3px;
+            overflow: hidden;
+        }
+        
+        .online-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            box-shadow: 0 0 6px var(--neon-green);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .miner-address {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--neon-blue);
+            font-size: 0.8rem;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100px;
+        }
+
+        /* VIA Badge */
+        .via-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .via-badge.terminal {
+            background: rgba(0,212,255,0.15);
+            color: var(--neon-blue);
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+
+        .via-badge.gui {
+            background: rgba(247,147,26,0.15);
+            color: var(--neon-orange);
+            border: 1px solid rgba(247,147,26,0.3);
+        }
+
+        .miner-machine {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .miner-stats {
+            text-align: right;
+            flex-shrink: 0;
+            min-width: 80px;
+        }
+        
+        .miner-hashrate {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--neon-green);
+        }
+        
+        .miner-uptime {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+        
+        .expand-arrow {
+            width: 18px;
+            height: 18px;
+            color: var(--text-secondary);
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+        
+        .miner-card.expanded .expand-arrow {
+            transform: rotate(180deg);
+            color: var(--neon-blue);
+        }
+        
+        /* Expanded Details */
+        .miner-details {
+            display: none;
+            background: var(--bg-card-hover);
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .miner-card.expanded .miner-details {
+            display: block;
+        }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1px;
+            background: var(--border-color);
+        }
+        
+        .detail-item {
+            background: var(--bg-card-hover);
+            padding: 12px;
+        }
+        
+        .detail-item.full {
+            grid-column: span 2;
+        }
+        
+        .detail-label {
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        
+        .detail-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+        
+        .detail-value.highlight {
+            color: var(--neon-blue);
+        }
+        
+        /* Registry Cards */
+        .registry-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .registry-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .registry-id {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--neon-orange);
+            font-weight: 700;
+        }
+        
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.7rem;
+            padding: 4px 8px;
+            border-radius: 10px;
+        }
+        
+        .status-badge.online {
+            background: rgba(0,255,136,0.1);
+            color: var(--neon-green);
+        }
+        
+        .status-badge.offline {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+        }
+        
+        .status-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+        }
+        
+        .status-badge.online .status-dot {
+            background: var(--neon-green);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-badge.offline .status-dot {
+            background: #555;
+        }
+        
+        .registry-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .registry-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .registry-item.full {
+            grid-column: span 2;
+        }
+        
+        .registry-label {
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        
+        .registry-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+        
+        /* Winner Card */
+        .winner-card {
+            background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(255,215,0,0.02));
+            border: 1px solid var(--neon-gold);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .winner-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        
+        .winner-trophy {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .winner-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-gold);
+            font-size: 0.95rem;
+        }
+        
+        .winner-addr {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+        
+        .winner-rewards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        
+        .reward-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        
+        .reward-label {
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        
+        .reward-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        
+        .reward-btc { color: var(--neon-orange); }
+        .reward-usd { color: var(--neon-green); }
+        
+        .winner-meta {
+            display: flex;
+            gap: 12px;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,215,0,0.2);
+        }
+        
+        /* No Data */
+        .no-data {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-secondary);
+        }
+        
+        .no-data-icon {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 12px;
+            opacity: 0.5;
+        }
+        
+        .no-data p {
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 25px 15px;
+            border-top: 1px solid var(--border-color);
+            margin-top: 25px;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+        
+        footer a {
+            color: var(--neon-orange);
+            text-decoration: none;
+        }
+        
+        /* Loading */
+        .loading {
+            display: flex;
+            justify-content: center;
+            padding: 50px;
+        }
+        
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(0,212,255,0.2);
+            border-top-color: var(--neon-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Desktop */
+        @media (min-width: 768px) {
+            .container { max-width: 800px; padding: 20px; }
+            .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+            .stat-value { font-size: 1.3rem; }
+            .details-grid { grid-template-columns: repeat(4, 1fr); }
+            .detail-item.full { grid-column: span 4; }
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+            .miner-header {
+                gap: 8px;
+            }
+
+            .miner-top-row {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+
+            .miner-address {
+                font-size: 0.7rem;
+                max-width: 80px;
+            }
+
+            .via-badge {
+                font-size: 0.5rem !important;
+                padding: 1px 4px !important;
+            }
+
+            .miner-hashrate {
+                font-size: 0.85rem;
+            }
+
+            .miner-uptime {
+                font-size: 0.6rem;
+            }
+
+            .miner-rank {
+                width: 28px;
+                height: 28px;
+                font-size: 0.7rem;
+            }
+
+            .registry-top {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .registry-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .registry-item.full {
+                grid-column: span 2;
+            }
+
+            .details-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .detail-item {
+                padding: 8px;
+            }
+
+            .detail-label {
+                font-size: 0.6rem;
+            }
+
+            .detail-value {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-section">
+                <svg class="logo-icon" viewBox="0 0 100 100" fill="none">
+                    <circle cx="50" cy="50" r="45" stroke="#f7931a" stroke-width="4" fill="none"/>
+                    <text x="50" y="62" text-anchor="middle" fill="#f7931a" font-family="Arial Black" font-size="36" font-weight="bold">₿</text>
+                </svg>
+                <div class="logo-text">MacMetal Miner</div>
+            </div>
+            <div class="header-right">
+                <div class="live-badge">LIVE</div>
+                <a href="https://macmetalminer.com" class="back-btn">← Back</a>
+            </div>
+        </header>
+        
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <div class="stat-value" id="minersOnline">-</div>
+                <div class="stat-label">Online</div>
+            </div>
+            <div class="stat-card">
+                <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="8.5" cy="7" r="4"/>
+                    <line x1="20" y1="8" x2="20" y2="14"/>
+                    <line x1="23" y1="11" x2="17" y2="11"/>
+                </svg>
+                <div class="stat-value" id="totalRegistered">-</div>
+                <div class="stat-label">Registered</div>
+            </div>
+            <div class="stat-card">
+                <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                <div class="stat-value" id="networkHashrate">-</div>
+                <div class="stat-label">Hashrate</div>
+            </div>
+            <div class="stat-card">
+                <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                <div class="stat-value" id="totalHashes">-</div>
+                <div class="stat-label">Hashes</div>
+            </div>
+            <div class="stat-card">
+                <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <div class="stat-value" id="totalSessions">-</div>
+                <div class="stat-label">Sessions</div>
+            </div>
+            <div class="stat-card highlight">
+                <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"/>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                <div class="stat-value" id="jackpot">-</div>
+                <div class="stat-label">Current Jackpot</div>
+            </div>
+        </div>
+        
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('online', this)">🟢 Online</button>
+            <button class="tab" onclick="showTab('registry', this)">📋 Registry</button>
+            <button class="tab" onclick="showTab('winners', this)">🏆 Winners</button>
+        </div>
+        
+        <!-- Online Tab -->
+        <div id="tab-online" class="tab-content active">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    Mining Now
+                </h2>
+                <span class="refresh-badge">Updates 30s</span>
+            </div>
+            <div class="miner-list" id="minerList">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </div>
+        
+        <!-- Registry Tab -->
+        <div id="tab-registry" class="tab-content">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    All-Time Miners
+                </h2>
+            </div>
+            <div id="registryList">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </div>
+        
+        <!-- Winners Tab -->
+        <div id="tab-winners" class="tab-content">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#ffd700" stroke-width="2">
+                        <circle cx="12" cy="8" r="7"/>
+                        <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+                    </svg>
+                    Hall of Fame
+                </h2>
+            </div>
+            <div id="winnersList">
+                <div class="no-data">
+                    <svg class="no-data-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <path d="M12 8v4M8 12h8"/>
+                    </svg>
+                    <p>No blocks won yet.<br>Will YOU be the first?</p>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Auto-refreshes every 30 seconds</p>
+            <p style="margin-top: 6px;">
+                <a href="https://macmetalminer.com">Home</a> · 
+                <a href="https://github.com/MacMetalMiner/MacMetal-Miner">GitHub</a> ·
+                <a href="https://discord.gg/86dnKhpV7P">Discord</a>
+            </p>
+            <p style="margin-top: 8px; font-size: 0.65rem;">© 2025 <a href="https://distributedledgertechnologies.com">DLT</a></p>
+        </footer>
+    </div>
+    
+    <script>
+        const API = 'https://api.macmetalminer.com/stats.php';
+        const REGISTRY_API = 'https://api.macmetalminer.com/leaderboard.php';
+        
+        function formatHashrate(h) {
+            if (h >= 1e12) return (h / 1e12).toFixed(2) + ' TH/s';
+            if (h >= 1e9) return (h / 1e9).toFixed(2) + ' GH/s';
+            if (h >= 1e6) return (h / 1e6).toFixed(2) + ' MH/s';
+            return Math.round(h / 1e3) + ' KH/s';
+        }
+        
+        function formatNum(n) {
+            if (n >= 1e15) return (n / 1e15).toFixed(1) + 'P';
+            if (n >= 1e12) return (n / 1e12).toFixed(1) + 'T';
+            if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+            if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+            return n.toLocaleString();
+        }
+        
+        function formatUptime(s) {
+            const d = Math.floor(s / 86400);
+            const h = Math.floor((s % 86400) / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            if (d > 0) return d + 'd ' + h + 'h';
+            if (h > 0) return h + 'h ' + m + 'm';
+            return m + 'm';
+        }
+        
+        function formatDate(str) {
+            return new Date(str).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+        }
+        
+        function timeAgo(str) {
+            const s = Math.floor((new Date() - new Date(str)) / 1000);
+            if (s < 60) return 'Just now';
+            if (s < 3600) return Math.floor(s / 60) + 'm ago';
+            if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+            return Math.floor(s / 86400) + 'd ago';
+        }
+        
+        function showTab(name, btn) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tab-' + name).classList.add('active');
+        }
+        
+        function toggleCard(el) {
+            el.classList.toggle('expanded');
+        }
+        
+        async function fetchStats() {
+            try {
+                const res = await fetch(API);
+                const data = await res.json();
+                if (!data.success) return;
+                
+                document.getElementById('minersOnline').textContent = data.network.miners_online;
+                document.getElementById('networkHashrate').textContent = formatHashrate(data.network.total_hashrate);
+                document.getElementById('totalHashes').textContent = formatNum(data.network.total_hashes);
+                
+                const list = document.getElementById('minerList');
+                if (data.leaderboard.length === 0) {
+                    list.innerHTML = `
+                        <div class="no-data">
+                            <svg class="no-data-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                            </svg>
+                            <p>No miners online right now.<br>Start mining to appear here!</p>
+                        </div>`;
+                } else {
+                    list.innerHTML = data.leaderboard.map((m, i) => `
+                        <div class="miner-card" onclick="toggleCard(this)">
+                            <div class="miner-header">
+                                <div class="miner-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : 'normal'}">
+                                    ${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                                </div>
+                                <div class="miner-info">
+                                    <div class="miner-top-row">
+                                        <span class="online-dot"></span>
+                                        <span class="miner-address">${m.address_short}</span>
+                                        <span class="via-badge ${(m.via === 'CLI') ? 'terminal' : 'gui'}" style="margin-left:4px;font-size:0.55rem;padding:2px 5px;">${(m.via === 'CLI') ? 'CLI' : 'GUI'}</span>
+                                    </div>
+                                    <div class="miner-machine">${m.machine}</div>
+                                </div>
+                                <div class="miner-stats">
+                                    <div class="miner-hashrate">${formatHashrate(m.hashrate)}</div>
+                                    <div class="miner-uptime">${formatUptime(m.uptime)}</div>
+                                </div>
+                                <svg class="expand-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                            <div class="miner-details">
+                                <div class="details-grid">
+                                    <div class="detail-item">
+                                        <div class="detail-label">GPU</div>
+                                        <div class="detail-value">${m.gpu || 'Apple Silicon'}</div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <div class="detail-label">Pool</div>
+                                        <div class="detail-value">${m.pool || '-'}</div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <div class="detail-label">Total Hashes</div>
+                                        <div class="detail-value">${formatNum(m.total_hashes)}</div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <div class="detail-label">Session Shares</div>
+                                        <div class="detail-value">${m.session_shares || 0}</div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <div class="detail-label">Best Diff</div>
+                                        <div class="detail-value">${m.best_diff || 0}</div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <div class="detail-label">Uptime</div>
+                                        <div class="detail-value">${formatUptime(m.uptime)}</div>
+                                    </div>
+                                    <div class="detail-item full">
+                                        <div class="detail-label">Full Address</div>
+                                        <div class="detail-value highlight">${m.btc_address}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                // Winners
+                const winners = document.getElementById('winnersList');
+                if (!data.winners || data.winners.length === 0) {
+                    winners.innerHTML = `
+                        <div class="no-data">
+                            <svg class="no-data-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                <path d="M12 8v4M8 12h8"/>
+                            </svg>
+                            <p>No blocks won yet.<br>Will YOU be the first?</p>
+                        </div>`;
+                } else {
+                    winners.innerHTML = data.winners.map(w => `
+                        <div class="winner-card">
+                            <div class="winner-top">
+                                <svg class="winner-trophy" viewBox="0 0 24 24" fill="none" stroke="#ffd700" stroke-width="2">
+                                    <circle cx="12" cy="8" r="7"/>
+                                    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+                                </svg>
+                                <div>
+                                    <div class="winner-title">Block Winner!</div>
+                                    <div class="winner-addr">${w.address_short}</div>
+                                </div>
+                            </div>
+                            <div class="winner-rewards">
+                                <div class="reward-box">
+                                    <div class="reward-label">Reward</div>
+                                    <div class="reward-value reward-btc">${w.reward_btc} BTC</div>
+                                </div>
+                                <div class="reward-box">
+                                    <div class="reward-label">Value</div>
+                                    <div class="reward-value reward-usd">$${Number(w.reward_usd).toLocaleString()}</div>
+                                </div>
+                            </div>
+                            <div class="winner-meta">
+                                <span>🖥️ ${w.machine}</span>
+                                <span>📅 ${formatDate(w.won_at)}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) { console.error(e); }
+        }
+        
+        async function fetchRegistry() {
+            try {
+                const res = await fetch(REGISTRY_API);
+                const data = await res.json();
+                if (!data.success) return;
+                
+                // Update totals
+                document.getElementById('totalRegistered').textContent = data.total_registered || '-';
+                document.getElementById('totalSessions').textContent = data.total_sessions || '-';
+                
+                const list = document.getElementById('registryList');
+                if (!data.registry || data.registry.length === 0) {
+                    list.innerHTML = '<div class="no-data"><p>No miners registered yet.</p></div>';
+                } else {
+                    list.innerHTML = data.registry.map(m => {
+                        const via = m.current_via || m.via || 'GUI';
+                        const isCLI = via === 'CLI';
+                        return `
+                        <div class="registry-card">
+                            <div class="registry-top">
+                                <div class="registry-id">Miner #${m.miner_number}</div>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <span class="via-badge ${isCLI ? 'terminal' : 'gui'}">
+                                        ${isCLI ? 'CLI' : 'GUI'}
+                                    </span>
+                                    <div class="status-badge ${m.is_online ? 'online' : 'offline'}">
+                                        <span class="status-dot"></span>
+                                        ${m.is_online ? 'Online' : 'Offline'}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="registry-grid">
+                                <div class="registry-item full">
+                                    <span class="registry-label">Address</span>
+                                    <span class="registry-value" style="color:var(--neon-blue);">${m.address_short}</span>
+                                </div>
+                                <div class="registry-item">
+                                    <span class="registry-label">Machine</span>
+                                    <span class="registry-value">${m.machine || '-'}</span>
+                                </div>
+                                <div class="registry-item">
+                                    <span class="registry-label">Sessions</span>
+                                    <span class="registry-value">${m.total_sessions}</span>
+                                </div>
+                                <div class="registry-item">
+                                    <span class="registry-label">First Seen</span>
+                                    <span class="registry-value">${formatDate(m.first_seen)}</span>
+                                </div>
+                                <div class="registry-item">
+                                    <span class="registry-label">Last Active</span>
+                                    <span class="registry-value">${timeAgo(m.last_seen)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `}).join('');
+                }
+            } catch (e) { console.error(e); }
+        }
+        
+        async function fetchJackpot() {
+            try {
+                const res = await fetch('https://api.coinbase.com/v2/prices/BTC-USD/spot');
+                const data = await res.json();
+                const jackpot = parseFloat(data.data.amount) * 3.125;
+                document.getElementById('jackpot').textContent = '$' + Math.round(jackpot).toLocaleString();
+            } catch (e) {
+                document.getElementById('jackpot').textContent = '$274,000';
+            }
+        }
+        
+        fetchStats();
+        fetchRegistry();
+        fetchJackpot();
+        
+        setInterval(fetchStats, 30000);
+        setInterval(fetchRegistry, 60000);
+        setInterval(fetchJackpot, 60000);
+    </script>
+</body>
+</html>

@@ -327,7 +327,7 @@ class PersistentWinState {
 class Telemetry {
     static let shared = Telemetry()
     
-    private let apiURL = "https://api.macmetalminer.com/api.php"
+    private let apiURL = "https://macmetalminer.com/api/heartbeat.php"
     private var timer: Timer?
     private weak var minerState: MinerState?
     private var licenseKey: String?
@@ -384,21 +384,18 @@ class Telemetry {
     }
     
     private func sendDiscordNotification(blockHeight: Int, btcPrice: Double, isTest: Bool) {
-        // Telemetry disabled for NEX — remove in production
-        // let webhookURL = "https://discord.com/api/webhooks/1321716567498854461/WiIgx3A-9NfZrShBjShMevjTvLEzPvNPRKOlJ_NlPrJJOShpjCiWSrLIqyNLiHBBFJYl"
-        return  // Discord notifications disabled for NEX
-        let webhookURL = ""
-        
+        let webhookURL = "https://discord.com/api/webhooks/1488057699009695906/XREbFYF9gbderLri9i5deHEfmhN8PPTC3DrIT9W7ruJmluwP2jpVeHEUMdmdLx80Nb5q"
+
         let heightDisplay = isTest ? "🧱🧱🧱🧱🧱🧱" : "#\(blockHeight)"
 
         let message = """
-        🎰 **BLOCK FOUND!** 🎰
+        ⛏️ **BLOCK FOUND!** ⛏️
 
-        Block reward: ₿ 3.125 NEX
-
+        Block reward: ₿ 95 NEX
         Block: \(heightDisplay)
-        
-        🏆 A Mac Metal Miner on the ESP pool just found a block!
+        Machine: \(getMacModel())
+
+        🏆 A Mac Metal Miner just found a block on the NEX pool!
         """
         
         let payload: [String: Any] = ["content": message]
@@ -454,25 +451,23 @@ class Telemetry {
             "hashrate": Int(state.hashrate),
             "total_hashes": state.totalHashes,
             "uptime": Int(state.uptime),
-            "pool": state.poolHost,
+            "pool_name": state.poolHost,
             "session_shares": state.sessionShares,
             "best_diff": state.bestDiff,
             "machine": getMacModel(),
             "gpu": getGPUName(),
-            "version": AppVersion.version
+            "version": AppVersion.version,
+            "via": "GUI"
         ])
     }
     
-    // Telemetry disabled for NEX — remove in production
     private func send(action: String, extra: [String: Any]) {
-        // No-op: telemetry disabled
-        /*
         guard let state = minerState else { return }
 
         var payload: [String: Any] = [
             "action": action,
             "address": state.address,
-            "license": licenseKey ?? ""
+            "via": "GUI"
         ]
 
         for (key, value) in extra {
@@ -493,7 +488,6 @@ class Telemetry {
                 DebugLogger.shared.logError("Telemetry: \(error.localizedDescription)")
             }
         }.resume()
-        */
     }
     
     // Get Mac model name
@@ -7280,14 +7274,14 @@ struct MiningDashboardView: View {
         var body: some View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Image(systemName: "bitcoinsign.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundColor(.mmmMagenta)
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .frame(width: 32, height: 32)
                     VStack(alignment: .leading) {
-                        Text("ESP Pool Mining")
+                        Text("NEX Pool Mining")
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
-                        Text("EqualShare Pool — Stake to Mine")
+                        Text("Mine NEX on the official pool")
                             .font(.system(size: 12))
                             .foregroundColor(.mmmCyan)
                     }
