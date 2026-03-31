@@ -202,9 +202,9 @@ if [ $? -eq 0 ] && [ -f "$MACOS/$APP_NAME" ]; then
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>9.5.0</string>
     <key>CFBundleVersion</key>
-    <string>940</string>
+    <string>950</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>LSMinimumSystemVersion</key>

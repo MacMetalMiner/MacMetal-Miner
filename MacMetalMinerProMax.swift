@@ -1,4 +1,4 @@
-// Mac Metal Miner v9.4.1
+// Mac Metal Miner v9.5.0
 //
 // PROPRIETARY SOFTWARE - ALL RIGHTS RESERVED
 // Copyright (c) 2025 David Otero / Distributed Ledger Technologies
@@ -863,7 +863,7 @@ enum MiningPool: String, CaseIterable, Identifiable {
 // ╚═══════════════════════════════════════════════════════════════════════════════╝
 
 struct AppVersion {
-    static let version = "9.4.1"
+    static let version = "9.5.0"
     static let build = "PRO"
     static let full = "v\(version) \(build)"
     static let buildDate = compileBuildDate()
@@ -7645,7 +7645,7 @@ struct HowItWorksView: View {
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.white)
                 
-                Text("v9.4.1 PRO")
+                Text("v9.5.0 PRO")
                     .font(.system(size: 10))
                     .foregroundColor(.mmmMagenta)
                 
