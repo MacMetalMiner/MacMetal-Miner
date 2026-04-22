@@ -212,17 +212,18 @@ kernel void sha256_mine(
         zeros = clz(val);
     }
     
-    // Simplified target check: accept hashes with enough leading zero bits
-    // For regtest diff 0.001: need ~22 zero bits (target starts with 0000000003e7...)
-    // For mainnet: the full 256-bit comparison will be needed
-    // zeros counts leading zero bits in the reversed hash (Bitcoin display order)
-    // Accept shares with enough leading zero bits
-    // 26 bits = ~1 share per second at 250 MH/s, most will beat regtest target
-    bool belowTarget = (zeros >= 26);
-    
-    // If all words equal, hash == target, which is NOT below target
-    
-    // If hash < target, save the result
+    // Full 256-bit target comparison: hash < target?
+    // target[0] = most-significant word, target[7] = least-significant word.
+    // hash2[7] is the MSW of the hash in CPU byte order; swap32 gives display (big-endian) value.
+    bool belowTarget = false;
+    for (int i = 0; i < 8; i++) {
+        uint hash_word = swap32(hash2[7 - i]);
+        uint targ_word = target[i];
+        if (hash_word < targ_word) { belowTarget = true; break; }
+        if (hash_word > targ_word) { belowTarget = false; break; }
+        // equal — keep comparing next word; stays false if all equal
+    }
+
     if (belowTarget) {
         uint idx = atomic_fetch_add_explicit(resultCount, 1, memory_order_relaxed);
         if (idx < 100) {  // Max 100 results per batch

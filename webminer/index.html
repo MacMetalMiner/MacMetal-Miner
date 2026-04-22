@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEX Miner — Mine Crypto in Your Browser</title>
+<meta name="description" content="Mine NEX cryptocurrency directly in your browser. No downloads, no account, no fees. Your rewards go straight to your wallet.">
+<link rel="icon" type="image/svg+xml" href="coin.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #578BFA;
+    --blue-hover: #6B9BFF;
+    --green: #27AD75;
+    --green-bg: rgba(39,173,117,0.12);
+    --red: #F06165;
+    --orange: #F89656;
+    --gold: #f2a900;
+    --bg: #0A0B0D;
+    --surface-1: #141519;
+    --surface-2: #1E2025;
+    --surface-3: #282B31;
+    --border: rgba(255,255,255,0.06);
+    --text: #FFFFFF;
+    --text-2: #8A919E;
+    --text-3: #5A5F6A;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', 'SF Mono', monospace;
+    --r: 12px;
+    --r-sm: 8px;
+    --r-lg: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+  .page { max-width: 520px; margin: 0 auto; padding: 48px 20px 32px; }
+
+  /* Nav */
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px; }
+  .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
+  .nav-brand img { width: 32px; height: 32px; border-radius: 50%; }
+  .nav-title { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .nav-link { font-size: 13px; color: var(--text-2); text-decoration: none; font-weight: 500; transition: color 0.15s; }
+  .nav-link:hover { color: var(--text); }
+  .nav-badge { font-size: 11px; color: var(--green); background: var(--green-bg); padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+
+  /* Hero */
+  .hero { text-align: center; margin-bottom: 32px; }
+  .hero h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 10px; }
+  .hero h1 span { background: linear-gradient(135deg, #f2a900 0%, #e05500 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hero p { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 380px; margin: 0 auto; }
+
+  /* Card */
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 24px; margin-bottom: 12px; }
+
+  /* Input */
+  .input-label { font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 8px; display: block; }
+  .input {
+    width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--r-sm);
+    padding: 14px 16px; color: var(--text); font-family: var(--mono); font-size: 13px; outline: none; transition: border-color 0.15s;
+  }
+  .input:focus { border-color: var(--gold); }
+  .input::placeholder { color: var(--text-3); }
+  .input:disabled { opacity: 0.35; }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+  .btn {
+    flex: 1; padding: 14px 0; border: none; border-radius: var(--r-sm);
+    font-family: var(--font); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  }
+  .btn:disabled { opacity: 0.25; cursor: not-allowed; }
+  .btn-primary { background: linear-gradient(135deg, #f2a900, #e05500); color: #fff; }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
+  .btn-secondary { background: var(--surface-3); color: var(--text-2); }
+  .btn-secondary:hover:not(:disabled) { background: #32353D; color: var(--text); }
+
+  /* Hashrate */
+  .hashrate-section { text-align: center; padding: 28px 24px; position: relative; overflow: hidden; }
+  .hashrate-section::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(242,169,0,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hashrate-label { font-size: 12px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+  .hashrate-value { font-family: var(--mono); font-size: 44px; font-weight: 700; letter-spacing: -0.03em; color: var(--text); line-height: 1.15; }
+  .hashrate-sub { font-size: 13px; color: var(--text-3); margin-top: 6px; font-family: var(--mono); }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--border); border-radius: var(--r); overflow: hidden; }
+  .stat-cell { background: var(--surface-1); padding: 16px 12px; text-align: center; }
+  .stat-cell-label { font-size: 10px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .stat-cell-value { font-family: var(--mono); font-size: 15px; font-weight: 600; }
+  .stat-cell-value.green { color: var(--green); }
+  .stat-cell-value.gold { color: var(--gold); }
+  .stat-cell-value.orange { color: var(--orange); }
+
+  .status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; font-family: var(--font); }
+  .status-pill.mining { background: var(--green-bg); color: var(--green); }
+  .status-pill.idle { background: var(--surface-3); color: var(--text-3); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .status-dot.on { background: var(--green); animation: pulse 2s infinite; }
+  .status-dot.off { background: var(--text-3); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* Log */
+  .log-card { padding: 0; overflow: hidden; }
+  .log-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+  .log-header-title { font-size: 13px; font-weight: 600; }
+  #log {
+    height: 160px; overflow-y: auto; padding: 10px 20px;
+    font-family: var(--mono); font-size: 11px; line-height: 1.9; color: var(--text-2); background: var(--bg);
+  }
+  #log div { border-bottom: 1px solid rgba(255,255,255,0.02); }
+  #log::-webkit-scrollbar { width: 3px; }
+  #log::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+
+  /* Info banner */
+  .info-banner {
+    display: flex; align-items: center; gap: 12px; padding: 14px 18px; margin-top: 12px;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r);
+    font-size: 13px; color: var(--text-2); line-height: 1.5;
+  }
+  .info-banner svg { flex-shrink: 0; }
+
+  .footer { text-align: center; padding: 28px 0 0; font-size: 12px; color: var(--text-3); line-height: 2; }
+  .footer a { color: var(--text-2); text-decoration: none; }
+  .footer a:hover { color: var(--gold); }
+
+  @media (max-width: 480px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .hashrate-value { font-size: 34px; }
+    .page { padding: 28px 16px 20px; }
+    .hero h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="nav">
+    <a class="nav-brand" href="/">
+      <img src="coin.svg" alt="NEX">
+      <span class="nav-title">NEX Miner</span>
+    </a>
+    <div class="nav-right">
+      <a class="nav-link" href="https://macmetalminer.com" target="_blank">Desktop App</a>
+      <span class="nav-badge">0% fees</span>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <h1>Mine <span>NEX</span> in your browser</h1>
+    <p>No downloads, no account needed. SHA-256 mining powered by your CPU. Rewards go directly to your wallet.</p>
+  </div>
+
+  <div class="card">
+    <label class="input-label">Your NEX wallet address</label>
+    <input type="text" class="input" id="address" placeholder="nex1z... or nx1q..." spellcheck="false" autocomplete="off">
+    <div class="btn-row">
+      <button class="btn btn-primary" id="startBtn" onclick="startMining()">Start mining</button>
+      <button class="btn btn-secondary" id="stopBtn" onclick="stopMining()" disabled>Stop</button>
+    </div>
+  </div>
+
+  <div class="card hashrate-section">
+    <div class="hashrate-label">Hashrate</div>
+    <div class="hashrate-value" id="hashrate">0 H/s</div>
+    <div class="hashrate-sub" id="threads">0 threads</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-cell">
+      <div class="stat-cell-label">Status</div>
+      <div id="statusPill"><span class="status-pill idle"><span class="status-dot off"></span>Idle</span></div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Accepted</div>
+      <div class="stat-cell-value green" id="accepted">0</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Rejected</div>
+      <div class="stat-cell-value" id="rejected" style="color:var(--text-3)">0</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Difficulty</div>
+      <div class="stat-cell-value gold" id="difficulty">&mdash;</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Uptime</div>
+      <div class="stat-cell-value" id="elapsed">0s</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Block Reward</div>
+      <div class="stat-cell-value orange">100 NEX</div>
+    </div>
+  </div>
+
+  <div class="card log-card" style="margin-top: 12px;">
+    <div class="log-header">
+      <span class="log-header-title">Activity</span>
+      <span id="logStatus" style="font-size:11px;color:var(--text-3);font-family:var(--mono)">idle</span>
+    </div>
+    <div id="log">
+      <div>Enter your wallet address and click Start mining.</div>
+    </div>
+  </div>
+
+  <div class="info-banner">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M10 6v5M10 13.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <span>Leave this tab open to mine continuously. Mining uses your CPU — close the tab to stop at any time.</span>
+  </div>
+
+  <div class="footer">
+    <a href="https://nexcurrency.com">NEX Currency</a> &middot;
+    <a href="https://macmetalminer.com">MacMetal Miner</a> &middot;
+    <a href="https://untraceablex.com">Block Explorer</a>
+    <br>100 NEX per block &middot; SHA-256d &middot; Solo mining pool
+  </div>
+
+</div>
+<script src="miner.js"></script>
+</body>
+</html>

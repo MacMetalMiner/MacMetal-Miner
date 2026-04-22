@@ -17,3 +17,8 @@ build/
 *.db
 *.db-shm
 *.db-wal
+
+# Compiled binaries (build outputs — regenerate with BUILD.command / build.sh)
+MacMetalCLI
+MacMetalMiner
+AyedexPool/AyedexPool

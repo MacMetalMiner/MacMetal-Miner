@@ -1,13 +1,13 @@
 #!/bin/bash
 # ╔═══════════════════════════════════════════════════════════════╗
 # ║       Mac Metal Miner - Build Script                                ║
-# ║          GPU Miner + Integrated Wallet                         ║
+# ║          GPU Miner v10.0.0                                     ║
 # ╚═══════════════════════════════════════════════════════════════╝
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════╗"
 echo "║       Mac Metal Miner - Build Script                               ║"
-echo "║          GPU Miner + Integrated Wallet                        ║"
+echo "║          GPU Miner v10.0.0                                    ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -202,9 +202,9 @@ if [ $? -eq 0 ] && [ -f "$MACOS/$APP_NAME" ]; then
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>9.5.0</string>
+    <string>10.0.0</string>
     <key>CFBundleVersion</key>
-    <string>950</string>
+    <string>1000</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>LSMinimumSystemVersion</key>
@@ -233,9 +233,7 @@ PLIST
     echo ""
     echo "Mac Metal Miner Features:"
     echo "  • GPU-accelerated SHA256d mining via Metal"
-    echo "  • Built-in wallet (JSON-RPC to nexd)"
-    echo "  • CLI terminal tab for nex-cli commands"
-    echo "  • Quantum-ready badge (Lumero bridge)"
+    echo "  • Use nex-wallet CLI for wallet operations"
     echo "  • NEX address validation (nx1, nxrt1, tnx1, N)"
     echo "  • Real-time hashrate monitoring"
     echo "  • GPU monitoring gauges"

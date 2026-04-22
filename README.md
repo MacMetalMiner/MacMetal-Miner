@@ -1,8 +1,8 @@
 # Mac Metal Miner
 
-**GPU-accelerated SHA-256d miner for Apple Silicon with built-in wallet, ESP pool support, and ASIC proxy.**
+**GPU-accelerated SHA-256d PPLNS miner for Apple Silicon with built-in wallet and ASIC proxy.**
 
-Mac Metal Miner (MMM) mines NEX using Apple's Metal compute shaders, delivering multi-gigahash performance from a single Mac. It connects to NEX's EqualShare Pool (ESP) via Stratum V1 and includes an integrated wallet, CLI terminal, and LAN proxy for external ASIC hardware like Bitaxe.
+Mac Metal Miner (MMM) mines NEX using Apple's Metal compute shaders, delivering multi-gigahash performance from a single Mac. It connects to the NEX PPLNS mining pools via Stratum V1 and includes an integrated wallet, CLI terminal, and LAN proxy for external ASIC hardware like Bitaxe. Payouts are shared proportionally by recent hashrate contribution — steady daily NEX instead of a years-long solo lottery.
 
 ---
 
@@ -10,7 +10,7 @@ Mac Metal Miner (MMM) mines NEX using Apple's Metal compute shaders, delivering 
 
 - **Metal GPU Mining** -- SHA-256d compute kernel optimized for Apple Silicon
 - **Built-in Wallet** -- Send, receive, and check balances via JSON-RPC to nexd
-- **ESP Pool Integration** -- Tiered stake-to-mine with automatic tier detection
+- **PPLNS Rewards** -- Your slice of every block scales with your hashrate contribution (weighted over last 500 shares)
 - **ASIC LAN Proxy** -- Bridge external miners (Bitaxe, etc.) through MMM to the pool
 - **CLI Terminal** -- Run any nex-cli command directly from the app
 - **Stratum V1** -- Full protocol support including mining.configure (version-rolling)
@@ -26,7 +26,7 @@ Mac Metal Miner (MMM) mines NEX using Apple's Metal compute shaders, delivering 
 
 - macOS 14.0+ (Sonoma or later)
 - Apple Silicon (M1 / M2 / M3 / M4)
-- NEX pool connection (default: ESP pool on port 3333)
+- NEX pool connection (default: PPLNS pool on port 3333)
 
 ---
 
@@ -41,20 +41,11 @@ Produces `Mac Metal Miner.app` -- a standalone macOS application.
 
 ---
 
-## ESP Pool Tiers
+## PPLNS Mining
 
-MMM integrates with NEX's EqualShare Pool. Stake NEX to unlock higher reward tiers:
+MMM connects via Stratum v1 to one of 4 regional NEX PPLNS pools (Virginia, California, Mumbai, São Paulo) on port `3333`. Every accepted share you submit goes into a rolling window of the last ~500 shares across all miners; when the pool finds a block, the 100 NEX reward is split proportionally across that window's contributors via a multi-vout coinbase. There are no pool fees — the full block subsidy is distributed to miners.
 
-| Tier | Stake | Reward Share |
-|------|-------|-------------|
-| Starter | 0 NEX | 5% |
-| Nano | 10 NEX | 10% |
-| Micro | 50 NEX | 15% |
-| Standard | 100 NEX | 20% |
-| Pro | 500 NEX | 25% |
-| Ultra | 1,000 NEX | 25% |
-
-Your current tier is shown in the Wallet tab. Stake and unstake directly from the app.
+Why PPLNS rather than solo: at current network difficulty, a single Mac solo-mining against the 100 NEX reward would expect a block every ~90 days. PPLNS smooths that into steady daily NEX based on your hashrate share of the pool — meaningful for most Macs (50 MH/s – 1 GH/s depending on model).
 
 ---
 
@@ -88,7 +79,7 @@ The proxy handles mining.configure (version-rolling), job distribution, and diff
 
 ## Block Reward
 
-95 NEX per block. Reward is distributed through the ESP pool based on your tier and share contribution.
+100 NEX per block (Era 1, blocks 0-374,999). Halves every 375,000 blocks down to 1.5625 NEX in Era 7+. Mining ends at block 3,000,000. The full reward goes to the address you mine to.
 
 ---
 
