@@ -728,43 +728,63 @@ class SystemCalibration {
 // ╚═══════════════════════════════════════════════════════════════════════════════╝
 
 enum MiningPool: String, CaseIterable, Identifiable {
-    // NEX PPLNS mining pools (regional — pick the one closest for lowest latency).
-    // All 4 use port 3333 = PPLNS shared rewards (proportional to share contribution).
-    // Port 7777 (solo) exists on the backend but is intentionally not exposed in MMM —
-    // the UX here is for the mass-adoption PPLNS path where rewards are predictable.
-    case nexMainnet = "98.80.98.17"       // 🇺🇸 US East (Virginia)
-    case nexUSWest  = "54.151.80.95"      // 🇺🇸 US West (California)
-    case nexIndia   = "3.108.14.53"       // 🇮🇳 Asia (Mumbai, India)
-    case nexBrazil  = "54.207.182.188"    // 🇧🇷 South America (São Paulo)
+    // The single live NEX PPLNS pool — hosted on Google Cloud us-west2
+    // (Los Angeles, California). Connect on port 3333 for shared PPLNS
+    // rewards (proportional to share contribution). Port 7777 (solo) exists
+    // on the backend but is intentionally not exposed in MMM — the UX here
+    // is for the mass-adoption PPLNS path where rewards are predictable.
+    //
+    // Older AWS regional pools (Virginia / California-AWS / Mumbai / Brazil)
+    // were retired May 2026 in favor of consolidated GCP infrastructure.
+    case nexUSA = "usa.knexcoin.com"
+
+    // Custom / manual entry — the user fills in host + port themselves
+    // through editable text fields in the UI. When this case is selected,
+    // `host` and `port` return empty/zero and the UI is expected to read
+    // the user-entered values from MinerState.poolHost / poolPort.
+    case custom = "custom"
 
     var id: String { rawValue }
 
-    static var defaultPool: MiningPool { .nexMainnet }
+    static var defaultPool: MiningPool { .nexUSA }
+
+    /// True when the user has chosen to enter pool details manually.
+    /// UI binds editable text fields to MinerState.poolHost / poolPort
+    /// only when this is true.
+    var isCustom: Bool { self == .custom }
 
     var displayName: String {
         switch self {
-        case .nexMainnet: return "🇺🇸 NEX US-East — Virginia (PPLNS, 0% fee)"
-        case .nexUSWest:  return "🇺🇸 NEX US-West — California (PPLNS, 0% fee)"
-        case .nexIndia:   return "🇮🇳 NEX Asia — Mumbai, India (PPLNS, 0% fee)"
-        case .nexBrazil:  return "🇧🇷 NEX South America — São Paulo (PPLNS, 0% fee)"
+        case .nexUSA: return "🇺🇸 California (PPLNS, 0% fee)"
+        case .custom: return "⚙️ Custom — enter host & port manually"
         }
     }
 
     var shortName: String {
         switch self {
-        case .nexMainnet: return "NEX US-East"
-        case .nexUSWest:  return "NEX US-West"
-        case .nexIndia:   return "NEX India"
-        case .nexBrazil:  return "NEX Brazil"
+        case .nexUSA: return "California"
+        case .custom: return "Custom"
         }
     }
 
-    /// Stratum host. All 4 pools expose PPLNS on port 3333.
-    var host: String { rawValue }
+    /// Stratum host. For .custom, returns "" — the UI must read
+    /// MinerState.poolHost instead.
+    var host: String {
+        switch self {
+        case .nexUSA: return "usa.knexcoin.com"
+        case .custom: return ""
+        }
+    }
 
-    /// Stratum port. Hard-coded to 3333 (PPLNS) for every pool — solo mining
-    /// (backend port 7777) is intentionally not offered from MMM.
-    var port: Int { 3333 }
+    /// Stratum port. Hard-coded to 3333 (PPLNS) for the live pool — solo
+    /// mining (backend port 7777) is intentionally not offered from MMM.
+    /// For .custom, returns 0 — the UI must read MinerState.poolPort.
+    var port: Int {
+        switch self {
+        case .nexUSA: return 3333
+        case .custom: return 0
+        }
+    }
 
     var fee: Double { 0.0 }
     var feePercent: String { "0%" }
@@ -773,10 +793,8 @@ enum MiningPool: String, CaseIterable, Identifiable {
 
     var description: String {
         switch self {
-        case .nexMainnet: return "NEX US-East (Virginia) PPLNS pool — rewards shared proportionally by recent share contribution. Lowest latency for US East coast miners."
-        case .nexUSWest:  return "NEX US-West (California) PPLNS pool — rewards shared proportionally by recent share contribution. Lowest latency for US West coast miners."
-        case .nexIndia:   return "NEX Asia (Mumbai, India) PPLNS pool — rewards shared proportionally by recent share contribution. Lowest latency for miners in Asia."
-        case .nexBrazil:  return "NEX South America (São Paulo) PPLNS pool — rewards shared proportionally by recent share contribution. Lowest latency for miners in LATAM."
+        case .nexUSA: return "NEX USA pool (Google Cloud, Los Angeles, California) — PPLNS shared rewards, weighted by your recent share contribution. Steady, predictable daily NEX with no lottery variance."
+        case .custom: return "Connect to a different NEX-compatible pool by entering its host and port manually below. Useful for testnet, regional alternatives operated by other people, or local development."
         }
     }
 }
@@ -786,7 +804,7 @@ enum MiningPool: String, CaseIterable, Identifiable {
 // ╚═══════════════════════════════════════════════════════════════════════════════╝
 
 struct AppVersion {
-    static let version = "10.0.0"
+    static let version = "10.2.0"
     static let build = "PRO"
     static let full = "v\(version) \(build)"
     static let buildDate = compileBuildDate()
@@ -1842,12 +1860,13 @@ class MinerState: ObservableObject {
     @Published var ramGB = SystemInfo.getMemoryGB()
     @Published var soundEnabled = true
     @Published var showNotifications = true
-    @Published var selectedPool: MiningPool = .nexMainnet  // Default to NEX US-East (Virginia)
-    // Derived pool state — auto-populated from selectedPool, shown as read-only in the UI.
-    // Kept under the old "custom*" names to avoid churning every reference across the file.
-    @Published var customHost = MiningPool.nexMainnet.host
-    @Published var customPort = String(MiningPool.nexMainnet.port)
-    @Published var customPoolName = MiningPool.nexMainnet.shortName
+    @Published var selectedPool: MiningPool = .nexUSA  // Default to NEX USA — California (GCP)
+    // Derived pool state — auto-populated from selectedPool when a preset is
+    // chosen, or editable text fields when selectedPool == .custom.
+    // Kept under the "custom*" names to avoid churning every reference across the file.
+    @Published var customHost = MiningPool.nexUSA.host
+    @Published var customPort = String(MiningPool.nexUSA.port)
+    @Published var customPoolName = MiningPool.nexUSA.shortName
     @Published var workerName = ""  // Optional worker name (appended to address as "addr.<worker>")
 
     // LAN ASIC Proxy
